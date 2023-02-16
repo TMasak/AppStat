@@ -8,8 +8,8 @@
 
 All course materials will come here, in this repo. Check out [this
 manual](https://htmlpreview.github.io/?https://github.com/TMasak/StatComp/blob/master/Manuals/02_Github.html)
-from the previous course to see how to pull this repo (do not manually
-download the slides, etc.).
+from the previous course (a mandatory prerequisite) to see how to pull
+this repo (do not manually download the slides, etc.).
 
 Moodle will only be used for formal submission (a link to a Github repo
 to be uploaded into the respective Moodle assignment).
