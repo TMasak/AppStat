@@ -13,7 +13,7 @@ knitr::opts_chunk$set(
 )
 ```
 
-# MATH-517 Statistical Computation and Visualization
+# MATH-516 Applied Statistics 2022-23
 
 <!-- badges: start -->
 <!-- badges: end -->

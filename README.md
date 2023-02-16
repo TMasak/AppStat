@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# MATH-517 Statistical Computation and Visualization
+# MATH-516 Applied Statistics 2022-23
 
 <!-- badges: start -->
 <!-- badges: end -->
@@ -14,7 +14,7 @@ There will be 7 projects (data analyses) in total:
 
 1.  EM Algorithm - Daniela’s Data
     - Weeks 1 and 2 (20.2.-5.3.2023)
-2.  Time Series - Global Warming?
+2.  Time Series - Global Warming? or energy prices?
     - Weeks 3 and 4 (6.3.-19.3.2023)
 3.  (f)PCA - Covid data
     - Weeks 5 and 6 (20.3.-2.4.2023)
@@ -108,7 +108,7 @@ submitted into the Moodle.
 This course was partially inspired by various existing courses, and the
 credit goes to their creators:
 
-- Michal Kulich, Charles University,
+- Michal Kulich & Arnost Komarek, Charles University,
 - Reinhard Furrer, University of Zurich,
 - Claudia Klüppelberg, Technical University of Munich,
 - Juliette Blanchet (Université Grenoble Alpes) & Jennifer Wadsworth
