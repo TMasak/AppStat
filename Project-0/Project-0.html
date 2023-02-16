@@ -593,8 +593,8 @@ Data Characteristics</a></li>
 Selection</a></li>
 <li><a href="#residual-diagnostics" id="toc-residual-diagnostics">4.
 Residual Diagnostics</a></li>
-<li><a href="#stabilitysensitivity-analysis" id="toc-stabilitysensitivity-analysis">5. Stability/sensitivity
-Analysis</a></li>
+<li><a href="#stabilitysensitivity-inspection" id="toc-stabilitysensitivity-inspection">5. Stability/sensitivity
+Inspection</a></li>
 <li><a href="#interpretation" id="toc-interpretation">6.
 Interpretation</a></li>
 <li><a href="#discussion" id="toc-discussion">7. Discussion</a></li>
@@ -791,8 +791,8 @@ Figure 3: Residuals vs. the regressors (the response is also included).
 </p>
 </div>
 </div>
-<div id="stabilitysensitivity-analysis" class="section level2">
-<h2>5. Stability/sensitivity Analysis</h2>
+<div id="stabilitysensitivity-inspection" class="section level2">
+<h2>5. Stability/sensitivity Inspection</h2>
 <p>We have considered one alternative model obtained to which we arrived
 originaly by wrongfully discarding age early. Furthermore, we have
 considered an oversimplified model containing only education and firm’s
@@ -919,6 +919,11 @@ realize that this is not due to collinearity between sales and profits
 (they are not collinear), it is even disturbing. However, there can be
 multicollinearity with <code>age</code> and thus we would have to
 explore this issue more before drawing hard conclusions.</p>
+<p>Only after finishing the report, we have noticed that it would be
+meaningful to include the interaction between education and the
+quadratic effect of <code>pcntown</code>. This would indeed be
+significant and prediction with such a model would be midly
+improved.</p>
 </div>
 
 

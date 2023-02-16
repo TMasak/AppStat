@@ -1,0 +1,686 @@
+---
+title: "Week 2: Linear Models - a Practical Recap"
+subtitle: "MATH-516 Applied Statistics"
+author: "Tomas Masak"
+# date: "`r format(Sys.time(), '%b %d, %Y')`"
+date: "Feb 20th 2023"
+output: beamer_presentation
+classoption: "presentation"
+theme: "Madrid"
+colortheme: "seahorse"
+footer: "Copyright (c) 2023, EPFL"
+urlcolor: blue
+header-includes:
+  - \usepackage{bm}
+  - \newcommand{\E}{\mathbb{E}}
+  - \newcommand{\var}{\mathrm{var}}
+  - \newcommand{\R}{\mathbb{R}}
+  - \newcommand{\argmin}{\mathrm{arg\,min\;}}
+  - \newcommand{\rank}{\mathrm{rank}}
+  - \newcommand\independent{\protect\mathpalette{\protect\independenT}{\perp}}\def\independenT#1#2{\mathrel{\rlap{$#1#2$}\mkern2mu{#1#2}}}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+# Data and Intepretation
+
+## Data
+
+* data: $(Y_1,Z_1^\top)^\top,\ldots,(Y_N,Z_N^\top)^\top$ where
+    - $Z_n \in \R^{q}$ are explanatory variables 
+    - $Y_n$ are responses
+
+* model: $\E[Y_n\mid X_n] = \beta_0 f_0(Z_n) + \beta_1 f_1(Z_n) + \ldots + \beta_{p-1} f_{p-1}(Z_n)$ where
+    - $f_j$ are known functions
+
+* model matrix:
+$$
+\mathbf X = \begin{pmatrix} X_1^\top \\ \vdots \\ X_N^\top  \end{pmatrix}
+$$
+where
+$$
+X_n = \begin{pmatrix} X_{n,0} \\ \vdots \\ X_{n,p-1}  \end{pmatrix} = \begin{pmatrix} f_0(Z_n) \\ \vdots \\ f_{p-1}(Z_n)  \end{pmatrix}
+$$
+    - $X_n$ is a parametrization of $Z_n$
+
+## Data
+
+* Let $Z_n \in \R$, i.e. there is just a single explanatory variable
+    - can be parametrized to many columns of $\mathbf X$
+
+* Example 1: polynomial regression of order $p$ in variable $Z$
+    - $\E[Y_N \mid Z_N] = \beta_0 + \beta_1 Z_n + \ldots + \beta_p Z_n$, i.e. the expected value of the response is a polynomial of order $p$ in the explanatory variable
+    -
+    $$
+      \mathbf{X} = \begin{pmatrix} 1 & Z_1 & Z_1^2 & \ldots & Z_1^p \\
+                                   1 & Z_2 & Z_2^2 & \ldots & Z_2^p \\
+                                   \quad \vdots             \\
+                                   1 & Z_N & Z_N^2 & \ldots & Z_N^p\end{pmatrix}
+    $$
+
+## Data
+
+* Example 2: $Z_n$ is a factor, e.g. $Z_n$ is $0$ for a child, $1$ for a man and $2$ for a woman
+    - $Z$ has no numerical interpretation $\Rightarrow$ it should be considered as a factor, i.e. every group is allowed to have its own mean
+    - the means have to be parametrized somehow, for example:
+    - say the model is $\E[Y_n\mid Z_n] = \beta_0 + \beta_1 \mathbb{I}_{[n\text{-th obs is a man}]} + \beta_2 \mathbb{I}_{[n\text{-th obs is a woman}]}$
+    - say we have 2 children followed by 2 men and then 2 women in the data
+    - $$
+      \mathbf{X} = \begin{pmatrix} 1 & 0 & 0 \\
+                                   1 & 0 & 0 \\
+                                   1 & 1 & 0 \\
+                                   1 & 1 & 0 \\
+                                   1 & 0 & 1 \\
+                                   1 & 0 & 1 \\\end{pmatrix}
+    $$
+
+## A Single Factor
+
+* Let $Z_n = 1,\ldots,G$ denote a group membership, i.e. it is a factor (and the only variable).
+* The largest possible model with only this information allows for different means $\mu_1,\ldots,\mu_G$ for every group.
+    - have to be related to variables $\beta_0,\ldots,\beta_{G-1}$
+* The naive parametrization: $$\beta_0\equiv \mu_1, \ldots, \beta_{G-1} \equiv \mu_G$$
+    - the model matrix has rows of the identity matrix (each row replicated by number of observations in that group)
+    - does not contain the intercept (an all-one column vector)
+    - does not generalize naturally to multiple factors
+* other parametrizations possible
+    - we choose depending on the interpretation we seek
+    
+## `"contr.treatment"` parametrization (the default in `R`)
+
+* A better parametrization:
+$$
+\begin{aligned}
+\mu_1 &= \beta_0 &\qquad \beta_0 &= \mu_1 \\
+\mu_2 &= \beta_0+\beta_1 &\qquad \beta_1 &= \mu_2-\mu_1 \\
+   &\vdots       &\qquad      &\vdots \\
+\mu_G &= \beta_0 + \beta_{G-1} &\qquad \beta_{G} &= \mu_g - \mu_1
+\end{aligned}
+$$
+    - the model matrix has rows
+    $$
+    \begin{pmatrix} 1 & 0 & \ldots & 0 \\
+                    1 & 1 & \ldots & 0 \\
+                    \vdots & \vdots & \ddots & \vdots \\
+                    1 & 0 & \ldots & 1\end{pmatrix}
+    $$
+    - $\beta_0$ is the mean of the first (reference) group
+    - for $j=1,\ldots,G-1$, $\beta_j$ is the difference in means between the $j$-th group and the reference group
+
+## `"contr.sum"` parametrization
+
+* Another parametrization:
+$$
+\begin{aligned}
+\mu_1 &= \beta_0 + \beta_1 &\qquad \beta_0 &= \frac{1}{G}\sum_{g=1}^G \mu_g =: \bar{\mu} \\
+  &\vdots       &\qquad      &\vdots \\
+\mu_{G-1} &= \beta_0+\beta_{G-1} &\qquad \beta_1 &= \mu_1-\bar{\mu} \\
+\mu_G &= \beta_0 - \sum_{g=1}^{G-1}\beta_{g} &\qquad \beta_{G} &= \mu_{G-1} - \bar{\mu}
+\end{aligned}
+$$
+    - the model matrix has rows
+    $$
+    \begin{pmatrix} 1& 1  & \ldots & 0 \\
+                    1& \vdots & \ddots & \vdots \\
+                    1&0  & \ldots & 1 \\
+                    1&-1 & \ldots & -1\end{pmatrix}
+    $$
+    - has the advantage of $\beta_0$ being the mean of group means
+
+## Linear Model
+
+\begin{exampleblock}{}
+\textbf{Definition.} The data $Y \in \R^N$, $\mathbf X \in \R^{N \times p}$ follow a linear model if $Y \mid X \sim (\mathbf X \beta, \sigma^2 I)$, that is when $\E[Y \mid \mathbf X] = \mathbf{X} \beta$ and $\mathrm{var}(Y \mid \mathbf X) = \sigma^2 \mathbf I$
+\end{exampleblock}
+
+* the model is linear because the dependency on the parameters $\beta=(\beta_0,\beta_1,\ldots,\beta_{p-1})^\top$ is linear
+* we will assume that the the model is full-rank: $P(\mathrm{rank}(X)=p)=1$ implying $p \leq n$
+* we do not assume Gaussianity here
+    - many results require it, but it can be mostly bypassed with asymptotics
+* we assume homoscedasticity ($\mathrm{var}(Y \mid \mathbf X) = \sigma^2 \mathbf I$)
+    - under heteroscedasticity ($\mathrm{var}(Y_n \mid X_n) = \sigma^2(X_n)$), use *sandwich*
+* we do not assume independence here
+    - if we have Gaussianity, it follows from uncorrelatedness
+    - without Gaussianity, it is crucial to have it for anything else than basic least-squares results such as Gauss-Markov
+* the most important assumption is having a correct form for the expectation!
+
+## Interpretation
+
+* let $x = (x_1,\ldots,x_p)^\top$ and $\tilde{x}^{(j)} = (x_1,\ldots,x_{j-1},x_j+1,x_{j+1},\ldots,x_p)^\top$
+* then $\beta_j = \E[Y_n \mid X_n=\tilde{x}^{(j)}] - \E[Y_n \mid X_n=x]$
+    - $\beta_j$ is the expected change in the response when the $j$-th regressor increases by one
+    - the change is multiplicative: a change of $x_j$ by $\delta$ suggests a change of $Y_n$ by $\delta \beta_j$
+* when there is intercept, then $\beta_0$ is the expected value of $Y$ under all other regressors being zero
+    - it makes sense to work with centered regressors
+* when the $j$-th regressor is on the log-scale: when $\log(x_j) \mapsto \log(x_j) + 1$, the expected response increases by $\beta_j$
+    - $\log(x_j) \mapsto \log(x_j) + 1$ $\Leftrightarrow$ $x_j \mapsto e x_j$
+    - it is better to work with base 2 or 10 for the log
+
+## Interpretation
+
+If linear model holds for log-transformed response: 
+
+* $\log(Y_n) = X_n^\top \beta + \epsilon$ $\Leftrightarrow$ $Y_n = e^{X_n^\top \beta} e^{\epsilon_n}$
+* since $\E[Y_n\mid X_n] = e^{X_n^\top \beta} \E e^{\epsilon_n} = e^{X_n^\top \beta + \log(\E e^{\epsilon_n})}$
+    - we cannot interpret the intercept, but
+    - $\log(x_j) \mapsto \log(x_j) + 1$ can be interpreted as the $e^{\beta_j}$-multiplicative increase of the response, because
+    $$
+    \frac{\E[Y_n \mid X_n=\tilde{x}^{(j)}]}{\E[Y_n \mid X_n = x]} = e^{\beta_j}
+    $$
+* for other transformations of the response (e.g. Box-Cox), we do not have such a nice interpretation
+    - this is partly why we love logarithmic transformations
+
+## Interactions
+
+* a specific model is given by the model matrix $\mathbf X$
+* each variable can have a single or numerous corresponding columns of $\mathbf X$
+    - true both for a numerical variables $Z,W$ and factors $A,B$
+* adding an interaction for two variables means simply to add to the model matrix entry-wise products between all columns of one variable and all columns of the other variable. Adding an interaction...
+    -  between two numerical variables $Z,W$ has no particular interpretation, for example
+    $$
+    \E Y_n = \beta_0 + \beta_1 Z_n + \beta_2 W_n \quad \Rightarrow \quad \E Y_n = \beta_0 + \beta_1 Z_n + \beta_2 W_n + \beta_3 Z_n W_n
+    $$
+    - between two factors $A,B$ with $G_1$ and $G_2$ groups, respectively, creates a partition into $G_1 G_2$ groups
+    - between $Z$ and $A$ allows for any form of dependence on $Z$ to be treated separately in the groups given by $A$ (example on next slide)
+    
+## Example: interaction between a numeric and a factor
+
+```{r,echo=F,fig.dim=c(10,4)}
+data(iris)
+x <- iris$Sepal.Length
+y <- iris$Petal.Length
+a <- iris$Species
+m1 <- lm(y~x)
+m2 <- lm(y~x+a)
+m3 <- lm(y~x*a)
+par(mfrow=c(1,3))
+plot(x,y,col=a,main="w/o factor")
+abline(coef(m1)[1],coef(m1)[2])
+plot(x,y,col=a,main="with factor")
+abline(coef(m2)[1],coef(m2)[2],col=1)
+abline(coef(m2)[1]+coef(m2)[3],coef(m2)[2],col=2)
+abline(coef(m2)[1]+coef(m2)[4],coef(m2)[2],col=3)
+plot(x,y,col=a,main="interaction")
+abline(coef(m3)[1],coef(m3)[2],col=1)
+abline(coef(m3)[1]+coef(m3)[3],coef(m3)[2]+coef(m3)[5],col=2)
+abline(coef(m3)[1]+coef(m3)[4],coef(m3)[2]+coef(m3)[6],col=3)
+```
+
+* no two lines are exactly parallel on the right-hand plot
+
+# Least Squares
+
+## Projections
+
+* let $\mathcal{M}(\mathbf X)$ denote the linear space spanned by the columns of $\mathbf{X} \in \R^{N \times p}$
+* let $\mathbf Q$ be a basis of $\mathbf X$ and $\mathbf P=(\mathbf Q \mid \mathbf N)$ be the basis of $\R^p$
+    - basis $\equiv$ orthonormal basis (for us)
+    
+$$
+\mathbf I = \mathbf P^\top \mathbf P = \mathbf Q \mathbf Q^\top + \mathbf N \mathbf Q^\top \mathbf Q \mathbf N^\top + \mathbf N \mathbf N^\top = \mathbf Q \mathbf Q^\top + \mathbf N \mathbf N^\top =: \mathbf H + \mathbf M
+$$
+
+* as projection matrices, $\mathbf H$ and $\mathbf M$ are
+    - unique
+    - with eigenvalues 0 or 1
+    - symmetric
+    - idempotent ($\mathbf A \mathbf A = \mathbf A$)
+    - $\mathbf H = \mathbf X (\mathbf X^\top \mathbf X)^{-1}\mathbf X^\top$\quad [$\mathbf X (\mathbf X^\top \mathbf X)^{-1}\mathbf X^\top \mathbf X = \mathbf X$ and properties above]
+* hence $Y = \mathbf I Y = \mathbf H Y + \mathbf M Y = \widehat{Y} + E$
+    - $\widehat{Y}$ are *fitted values*
+    - $E$ are *residuals*
+
+## Least Squares
+
+Also follows from the projection properties above (i.e. linear algebra):
+$$
+\widehat{Y} = \underset{\widetilde{Y} \in \mathcal{M}(\mathbf X)}{\mathrm{arg\,min}} \left\| Y - \widetilde{Y} \right\|_2^2 \qquad \text{or} \qquad \widehat{\beta} = \underset{\beta \in \R^p}{\mathrm{arg\,min}} \left\| Y - \mathbf X \beta \right\|_2^2
+$$
+
+\begin{exampleblock}{}
+\textbf{Theorem. (Gauss-Markov)} Let $Y \mid \mathbf{X} \sim (\mathbf{X} \beta, \sigma^2 \mathbf I)$, then $\widehat{Y} = \mathbf H Y$ is the BLUE (best linear unbiased estimator) of Y and $\widehat{\beta} = (\mathbf X^\top \mathbf X)^{-1}\mathbf X^\top Y$ is the BLUE of $\beta$.
+\end{exampleblock}
+
+* $\widehat{Y} \mid \mathbf X \sim (0, \sigma^2 \mathbf H)$ and $E \mid \mathbf X \sim (0,\sigma^2 \mathbf M)$
+    - e.g. $\E[E\mid \mathbf X] = \mathbf M \E Y = \mathbf M \mathbf X \beta = 0$ and $\var(E\mid \mathbf X) = \mathbf M \var(Y) \mathbf M^\top = \sigma^2 \mathbf M \mathbf M^\top = \sigma^2 \mathbf M$
+* hence $s^2 := \|E\|_2^2/(N-p)$ is an unbiased estimator of $\sigma^2$
+    - since $\E \|E\|_2^2 = \mathrm{tr}(\sigma^2 \mathbf M) = \sigma^2 \mathrm{tr}(\mathbf M) = \sigma^2 (n-p)$
+    - $\|E\|_2^2$ is the residual sum of squares
+    
+## FWL Theorem
+
+\begin{exampleblock}{}
+\textbf{Theorem.}
+Let $\mathbf X = (\mathbf X_1 \mid \mathbf X_2)$ be a partitioned matrix and consider two regressions:
+\begin{enumerate}
+\item $\E[Y\mid \mathbf{X}] = \mathbf X_1 \beta_1 + \mathbf X_2 \beta_2$, and
+\item $\E[(\mathbf I - \mathbf H_1)Y|\mathbf X_2] = (\mathbf I - \mathbf H_1) \mathbf X_2 \gamma_2$, where $\mathbf H_1 = \mathbf X_1 (\mathbf X_1^\top \mathbf X_1)^{-1} \mathbf X_1^\top$.
+\end{enumerate}
+Then the least squares estimates of $\beta_2$ and $\gamma_2$ coincide.
+\end{exampleblock}
+
+* almost no assumptions (the models do not even need to hold), just a property of least squares when working with linear models
+* when we add new regressors, we are just trying to explain whatever we failed to explain with the original regressors
+    - $(\mathbf I - \mathbf H_1)Y$ are the residuals from the regression $E[Y\mid \mathbf X_1] = \mathbf X_1 \beta_1$
+    - $(\mathbf I - \mathbf H_1) \mathbf X_2$ is the part of $\mathbf X_2$ orthogonal to $\mathbf X_1$
+
+## Model-Submodel Testing
+
+\begin{exampleblock}{}
+\textbf{Definition.} Consider two models $M^0: Y\mid\mathbf{X} \sim (\mathbf X^0 \beta^0, \sigma^2 \mathbf I)$ and $M: Y\mid\mathbf{X} \sim (\mathbf X \beta, \sigma^2 \mathbf I)$. $M^0$ is a submodel of $M$ if $\mathcal{M}(\mathbf X^0) \subset \mathcal{M}(\mathbf X)$.
+\end{exampleblock}
+
+* choose a basis $(\mathbf Q_0 \mid \mathbf Q_1 \mid \mathbf N)$ in $\R^N$ such that $\mathcal{M}(Q_0) = \mathcal{M}(\mathbf X^0)$ and $\mathcal{M}(\mathbf Q_0\mid \mathbf Q_1) = \mathcal{M}(\mathbf X)$
+* then $Y = \mathbf Q_0 \mathbf Q_0^\top Y + \mathbf Q_1 \mathbf Q_1^\top Y + \mathbf N \mathbf N^\top Y = \widehat{Y}^0 + \underbrace{D + E}_{E^0} = \widehat{Y} + E$
+
+\begin{exampleblock}{}
+\textbf{Theorem.} Consider models $M$ and $M^0$ above and let $M^0$ hold with the assumption of Gaussianity, i.e. $Y\mid\mathbf{X} \sim \mathcal{N}_n(\mathbf X^0 \beta^0, \sigma^2 \mathbf I)$. Then $\|D\|_2^2 = \| E^0 \|_2^2 - \|E\|_2^2$ and
+$$
+F = \frac{\frac{\| E^0 \|_2^2 - \|E\|_2^2}{p-p_0}}{\frac{\|E\|_2^2}{N-p}} \sim F_{p-p_0, N-p}
+$$
+\end{exampleblock}
+
+## Uncertainty Quantification
+
+\begin{exampleblock}{}
+\textbf{Theorem.} Let $Y\mid\mathbf{X} \sim \mathcal{N}_N(\mathbf X \beta, \sigma^2 \mathbf I)$ and $c \in \R^p$, $c \neq 0$. Then
+$$
+T = \frac{c^\top \widehat{\beta} - c^\top \beta}{\sqrt{s^2 c^\top (\mathbf X^\top \mathbf X)^{-1}c}} \sim t_{N-p}
+$$
+\end{exampleblock}
+
+* we can take e.g. $c = (1,0,\ldots,0)$ to obtain a CI for the first component of $\beta$, etc.
+* we can take $c = x_\star$, where $x_\star$ are values of the regressors for a new datum, to obtain a CI for the regression function at a new data point
+
+## Uncertainty Quantification (cntd.)
+
+* if we want a CI for $y_\star$ itself, we have to through in the additional uncertainty:
+    - under the model: $y_\star = x_\star^\top \beta + \epsilon_\star$ where $\epsilon_\star \sim N(0,\sigma^2)$ is the error, i.e. $y_\star - x_\star^\top \beta \sim N(0,\sigma^2)$
+    - from the (proof of) theorem above: $x_\star^\top \widehat{\beta} - x_\star^\top \beta \sim N(0,\sigma^2 x_\star^\top (\mathbf X^\top \mathbf X)^{-1} x_\star)$
+    - and the two distributions above are independent (since the new error is independent of everything) hence:
+    $$y_\star - x_\star^\top \widehat{\beta} \sim N(0, \sigma^2[1+ x_\star^\top (\mathbf X^\top \mathbf X)^{-1} x_\star])$$
+    - and from plugging in the estimator and Cramer-Slutzsky we obtain:
+$$
+\frac{y_\star - x_\star^\top \widehat{\beta}}{\sqrt{s^2[1+ x_\star^\top (\mathbf X^\top \mathbf X)^{-1} x_\star]}} \sim t_{N-p}
+$$
+from which we can construct a prediction interval
+
+## Asymptotics
+
+If we do not have Gaussianity (but independence), we can replace:
+
+* the $t_{N-p}$ distribution by the $N(0,1)$ distribution and
+* the $F_{p-p_0,N-p}$ distribution by the $\chi^2_{p-p_0}/(p-p_0)$ distribution
+    - i.e. doing a likelihood ratio test instead of an F-test
+
+In both cases, relevant quantiles of the asymptotically valid distributions are smaller in magnitude, so using the exact distributions for inference is
+
+* not really a problem for confidence intervals, we are simply being conservative and have wider intervals
+    - only use t-tests for CIs, nothing else
+* a problem for model-submodel tests, since maybe we should have rejected the submodel, but instead we have accepted
+
+## Exact vs. Asymptotic distributions
+
+```{r,fig.dim=c(6,4), out.width="60%",fig.align='center'}
+x <- 1:700/100
+y1 <- df(x, 3, 5)
+y2 <- df(x, 3, 10e6)
+# y3 <- dchisq(x,2)
+op <- par(mar=c(4,4,1,4))
+plot(x,y1,type="l",ylab="density")
+points(x,y2,type="l",col="blue")
+abline(v=qf(0.95,3,5), lty=2)
+abline(v=qf(0.95,3,10e6), lty=2,col="blue")
+# points(x/2,y3*2,type="l",col="red")
+# legend("topright",legend=c("F[3,5]","F[3,inf] ~ chisq[3]/3"),lty=c(1,1), col=c("black","blue"))
+```
+
+* black: $F_{3,5}$ distribution and its 95 % quantile (dashed)
+* blue: $F_{3,\infty} = \chi^2_3/3$ distribution and its 95 % quantile (dashed)
+
+If the $F$ statistics is between the dashed lines and Gaussianity does not hold, the model-submodel test wrongly arrives to the submodel.
+
+# Diagnostics
+
+## Measures of Model Quality
+
+The first measure of model quality is the `Multiple R-squared`
+$$
+R^2 := 1 - \frac{\|E\|_2^2/N}{\sum_n(Y_n - \bar{Y}_N)^2/N},
+$$
+measuring the proportion of variance explained by the regression.
+
+`Multiple R-squared` always increases with a new predictor added, partly because the two variance estimators in the fraction are biased. `Adjusted R-squared` uses unbiased estimators instead:
+$$
+R^2_{adj} := 1 - \frac{\|E\|_2^2/(N-p)}{\sum_n(Y_n - \bar{Y}_N)^2/(N-1)} = 1 - \frac{\widehat{\sigma}^2}{\sum_n(Y_n - \bar{Y}_N)^2/(N-1)}
+$$
+
+Still, this tends to favor larger models, so we have
+
+* $AIC = 2 N \log(\widehat{\sigma}) + 2 p$, which still tends to favor larger models, so
+* $AIC_c = AIC + 2p(p+1)/(N-p-1)$
+    - note that smaller $AIC$ is better because of a smaller residual variance
+    - trade-off between smaller residual variance and the number of predictors
+
+## Assumptions to be Checked
+
+1. validity
+    - have we "included all relevant predictors"?
+    - can we even answer the questions of interest?
+2. independence
+    - errors have to be independent (or uncorrelated under Gaussianity)
+3. linearity
+    - correct form for the expectation?
+4. homoscedasticity
+    - errors have the same variance
+5. Gaussianity
+    - are the errors
+    
+Also, we should check potentially problematic observations (outliers and leverage points).
+
+## How to Check the Assumptions
+
+1. validity
+    - we cannot really do much about this once data are given to us, but we should always think critically
+2. independence
+    - this can only be checked in a rather specific cases (whether some subgroups of observations are correlated or whether there is serial dependence in time, provided time matters)
+3. linearity
+    - plot residuals against regressors, there should be no patterns
+    - FWL theorem!
+4. homoscedasticity
+    - plot (standardized) residuals against fitted values, there should be no pattern
+5. Gaussianity
+    - QQ-plot and/or histogram of the residuals
+    
+One can also perform statistical tests.
+    
+## Problematic Observations
+
+* $\var(Y - \widehat{Y}) = \sigma^2(\mathbf I - \mathbf H)$ $\Rightarrow$ $\var(Y_n - \widehat{Y}_n) = \sigma^2 (1-h_{nn})$
+* $\mathrm{tr}(\mathbf H) = \sum_{n} h_{nn} = p$ is the no. of model degrees of freedom (no. of parameters)
+* $h_{nn}$ is called the leverage of $n$-th observation
+* if $h_{nn}$ is large, it means that a single obs. is usurping too much of the model fit freedom to itself $\Rightarrow$ potential problems (the $n$-th obs.is called a leverage point)
+* if $E_n$ is large in magnitude, the model does not fit the $n$-th obs. well $\Rightarrow$ potential problems (the $n$-th obs.is called an outlier)
+* when the $n$-th obs. is outlier AND leverage point $\Rightarrow$ problems!
+* Cook's statistic combines the two notions:
+$$
+C_n = \frac{E_n^2 h_{nn}}{p(1-h_{nn})}
+$$
+* plot (standardized) residuals against leverages and draw some Cook's contours (ROT: $8/(N-2p)$ or $4/N$) to see what's what
+
+# Linear Models in `R`
+
+## Important Functions
+
+* `model <- lm(formula, data)` estimates a linear model given by `formula` (next slide) specifying a parametrization for a data frame `data`, returns a fitted model object
+* `plot(model, which=1:6)` shows 6 default residual plots for a fitted `model`
+* `summary(model)` produces summary information for a fitted `model`
+* `resid(model)` extracts the residuals
+* `fitted(model)` extracts the fitted values
+* `predict(model, newdata)` obtain predicted values from a fitted `model` for the values of the regressors specified in `newdata`
+* `anova(model)` or `anova(m1,m2)` provides F-tests either between two models `m1` and `m2` or sequentially adding variables to an intercept-only model until `model`
+
+Note: apart from `lm` itself, all function names should end with `.lm`, e.g. `plot.lm()`, but this can be omitted when called on a `lm` object (such as `model` above).
+
+## `lm()` model formula
+
+\small
+Consider an example call: `lm(y ~ x + I(x^2) + a*b + w:z -1)`
+
+* `y`,`x`, `a`, `b`, `w` and `z` are names of variables in the data frame
+* `~` separates the response variable on the LHS from the regressors on the RHS
+* `+` is really an "and", specifies that the model depends on whatever is on the left and on the right of `+`
+* `:` adds an interaction between `w` and `z`, i.e. adds to the model matrix all element-wise products between all columns corresponding to `x` and all columns corresponsing to `y`
+* `*` is an interaction with the main terms, i.e. `a*b` $\equiv$ `a + b + a:b`
+    - since we basically never want an interaction without main terms, `*` is much more useful than `:`
+* `I()` without this `x^2` would be added as `x` (stupid), so `I()` is mostly used to allow for polynomial dependencies
+* `-1` specifies that there should be no intercept (otherwise there is by default)
+* `.` includes on the RHS all but the response variable (specified on the LHS)
+
+## Model `summary`
+
+Stupid example: (fitting a quadratic polynomial to intercept plus noise)
+
+\tiny
+```{r,echo=T}
+y <- 1+rnorm(100)
+x <- 1:100
+model <- lm(y ~ x + I(x^2))
+summary(model)
+```
+
+## Model `summary`
+
+* `Call` repeats the model formula
+* `Residuals` provides a `summary` of the residuals
+* `Coefficients` provides a table with the estimates, their standard errors, values of the $T$-statistic and p-values of the student $t$-tests, and also significance codes for a visual appeal
+    - one can have the first clues about which variables are significant from the $t$-tests, but it should always be decided by `anova` whether a variable should be dropped, e.g. here one would fit `submodel <- lm(y~1)` and call `anova(model,submodel)` to see whether the quadratic dependence on `x` can be removed
+* `Residual standard error` gives $\widehat{\sigma}$ where $\widehat{\sigma}^2= \| E \|_2^2/(n-p)$ and $n-p$ are the `degrees of freedom`
+* `Multiple R-squared` and `Adjusted R-squared` are self-explanatory
+* `F-statistic` for the model-submodel test between the model and intercept-only model
+    - i.e. exactly `anova(model,submodel)` from the few lines above
+    - informally tests whether the model is of any use
+
+## Overview
+
+* linear models are fitted by least squares
+* CIs and model-submodel tests are exact given Gaussianity
+* prediction intervals are easy to compute analytically
+* residuals allow us to check different model assumptions
+
+# Practical Modeling
+
+## Model Building
+
+* either manual or automated (forward/backward elimination, criterion must be chosen)
+* possible criteria:
+    - model-submodel testing
+    - $R^2$, $R^2_{adj}$, $AIC$, $AIC_c$ (and many others)
+    - prediction error
+    
+Depending on what we want...
+
+| Inference | Prediction |
+| --- | ----------- |
+| Statistics | Machine Learning |
+| Manual | Automated |
+| Simple Models | (Mixures of) Complicated Models |
+| Model-submodel Tests | Prediction Error |
+| $AIC_c$ | $R^2$ |
+
+## Manual Meta-algorithm (modified from Prof. Davison)
+
+* explore data
+    - standardization?
+    - can suggest transformations for response and/or regressors
+* consider what models are coherent with the problems/questions
+    - variables of a particular interest?
+* iterate:
+    - fit models, compare their quality (comes next)
+    - interpret model parameters
+    - check fit (comes next)
+* provide conclusions
+    - careful interpretation of the best model(s) in terms of the original problem
+    - consider deficiencies
+
+## Model Checking/Comparison
+
+1. residual diagnostics
+    - are our assumptions satisfied?
+2. sensitivity/stability inspection
+    - how much inference/conclusions change when model changes to another plausible one?
+    - what if some special observations are omitted or different transformations used?
+3. predictive checking
+    - does our model provide good/reasonable predictions?
+
+# Example: CEO Salaries
+
+## Data & Objective
+
+Data: from Forbes (1992) on 100 of the largest firms in the US:
+
+* `comp` - CEO salary
+* `age` - CEO age
+* `educatn` - CEO education
+* `pcntown` - percentage of firm owned by the CEO
+* `sales` - firm's sales
+* `prof` - firm's profits
+    - some other variables also available, but we will not consider them here
+    
+Goal: assess the effect of education
+
+## Data Exploration - Histograms with Base `R`
+
+\footnotesize
+```{r,echo=T,out.width="70%",fig.align="center"}
+Data <- read.csv("../Project-0/CEO_compensations.csv")
+names(Data) <- tolower(names(Data)) # variable names to lower-case
+Data <- Data[,c(1,2,3,7,9,10)]
+par(mfrow=c(2,3))
+for(i in 1:6) hist(as.numeric(Data[,i]))
+```
+
+## Data Exploration - Histograms with `tidyverse`
+
+\footnotesize
+```{r,echo=T,out.width="65%",fig.align="center"}
+library(tidyverse)
+Data <- read.csv("../Project-0/CEO_compensations.csv")
+names(Data) <- tolower(names(Data))
+Data <- Data %>% select(comp, age, educatn, pcntown, sales, prof)
+Data %>% pivot_longer(everything()) %>% ggplot(aes(value)) +
+  facet_wrap(~ name, scales = "free") + geom_histogram()
+```
+
+## Transformations
+
+* log-tranformation for `comp` and `sales` seems an obvious choice
+* `pcntown` unclear since these are percentages (=0? let's try...)
+    - if some were indeed 0, should we create an additional factor?
+* education should be considered a factor
+
+\footnotesize
+```{r,echo=T}
+Data <- Data %>% mutate(comp=log(comp),
+                        sales=log(sales),
+                        pcntown=log(pcntown),
+                        educatn=as.factor(educatn))
+```
+```{r,out.width="50%",fig.align="center"}
+Data %>% mutate(educatn=as.numeric(educatn)) %>% pivot_longer(everything()) %>% ggplot(aes(value)) +
+  facet_wrap(~ name, scales = "free") + geom_histogram()
+```
+
+## Anova Table - Type I
+
+* fit a model with all the variables and test for their significance using model-submodel tests
+* however, `anova()` does this sequentially (not entirely useful, since it depends on variable ordering)
+
+\footnotesize
+```{r,echo=T}
+m1 <- lm(comp~., data=Data)
+anova(m1)
+```
+
+## Anova Table - Type II
+
+* instead, we would like to see what happens when we drop a single variable out of the model
+
+\footnotesize
+```{r,echo=T}
+library(car)
+m1 <- lm(comp~., data=Data)
+Anova(m1,type=2)
+```
+
+## Interaction
+
+* add interactions between `educatn` (variable of interest) and other variables
+* `Anova(m1,type=2)` suggests only `educatn*age` is significant
+
+Test this manually:
+
+\footnotesize
+```{r,echo=T}
+m3 <- lm(comp~.*educatn, data=Data)
+m2 <- lm(comp~.+educatn:age, data=Data)
+anova(m1,m2,m3)
+```
+
+## Diagnostics
+
+Model 2 seems to be good, let's check the residual plots
+
+\footnotesize
+```{r,echo=T,out.width="60%",fig.align="center"}
+Data %>% mutate(res=resid(m2), educatn=as.numeric(educatn)) %>%
+  pivot_longer(-res) %>% ggplot(aes(y=res,x=value)) +
+  facet_wrap(~ name, scales = "free") + geom_point() + geom_smooth()
+```
+
+## Diagnostic
+
+* allow for a quadratic dependence on `pcntown`
+
+\footnotesize
+```{r,echo=T,out.width="60%",fig.align="center"}
+mfinal <- lm(comp~.+educatn:age+I(pcntown^2), data=Data)
+Data %>% mutate(res=resid(mfinal), educatn=as.numeric(educatn)) %>%
+  pivot_longer(-res) %>% ggplot(aes(y=res,x=value)) +
+  facet_wrap(~ name, scales = "free") + geom_point() + geom_smooth()
+```
+
+## Diagnostics
+
+\footnotesize
+```{r,echo=T,fig.height=4}
+par(mfrow=c(1,3))
+N <- dim(Data)[1]
+p <- length(coef(mfinal))
+plot(mfinal,c(1,5),cook.levels=c(8/(N-2*p), 4/N))
+hist(resid(mfinal),freq=F, breaks=20)
+points(-300:300/100,dnorm(-300:300/100,0,sd(resid(mfinal))),
+       type="l",col="red")
+```
+
+## Interpretation of the model w.r.t. education
+
+\tiny
+```{r,echo=T}
+summary(mfinal)
+```
+
+## Interpretation of the model w.r.t. education
+
+\tiny
+```{r,echo=T}
+Data$age <- Data$age - mean(Data$age) # mean(age)~57
+mfinal <- lm(comp~.+educatn:age+I(pcntown^2), data=Data)
+summary(mfinal)
+```
+
+## Rest
+
+For sensitivity inspection, predictive checking, and more careful interpretation, check out `./Project-0/Project-0.html`
+
+* there is also a `rough_work` script and a separate `cv-script`
+* you can use this as a guidance for your project reports
+
+## References
+
+\footnotesize
+* Venables & Ripley (2002) Modern Applied Statistics with S (4th ed.)
+    - while S is the predecessor of R, it has basically the same syntax and this remains to be an amazing and contemporary book!
+    - a great reference for the whole course (though every topic probably requires a previous exposition)
+* Wood (2017) Generalized Additive Models: an Introduction with R (2nd ed.)
+    - even though mainly about GAMs, this book has a short and practical exposition to linear models and GLMs that has a value of its own
+    - computational flavor
+* Davison (2003) Statistical Models
+    - nice reference due to the breadth, more self-contained than Venables & Ripley, but no `R` code
+* Gelman & Hill (2006) Data Analysis Using Regression and Multilevel/Hierarchical Models
+    - focuses very much on interpretation
+    - somehow an opposite of Venables & Ripley in that it is eloquent/lengthy and not always to the point (or precise)
+* Wickham & Grolemund (2017) [R for Data Science](https://r4ds.had.co.nz/index.html)
+    - useful guide to `tidyverse`, i.e. data exploration and manipulation
