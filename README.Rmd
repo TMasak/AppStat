@@ -80,9 +80,9 @@ The project report has to be created using R Markdown and has to be fully reprod
     - the corresponding `.Rmd` source code
 Optionally, the folder can also contain separate R scripts that perform parts of the analysis and are either sourced from the R Markdown file or run aside with results saved as `.RData` that are in turn loaded from the R Markdown file (the latter option is useful e.g. for computationally heavy tasks).
 
-TODO: link StatComp manuals here.
+[This folder](https://github.com/TMasak/StatComp/tree/master/Manuals) contains several manuals on using R, Markdown and Github, [this one](https://htmlpreview.github.io/?https://github.com/TMasak/StatComp/blob/master/Manuals/02_Github.html) in particular explains how to connect to this repo.
 
-TODO: create a sample submission
+See `Project-0` subfolder for a sample submission (we will go through it during Week 2).
 
 In order to have a formal submission procedure (following the deadlines above), project submissions will be open in the Moodle as "Assignments". Only the link into a project folder inside your Github repo is to be submitted into the Moodle.
 
@@ -91,6 +91,7 @@ In order to have a formal submission procedure (following the deadlines above), 
 This course was partially inspired by various existing courses, and the credit goes to their creators:
 
 * Michal Kulich & Arnost Komarek, Charles University,
+* Bin Yu, UC Berkeley,
 * Reinhard Furrer, University of Zurich,
 * Claudia Klüppelberg, Technical University of Munich,
 * Juliette Blanchet (Université Grenoble Alpes) & Jennifer Wadsworth (Lancaster University), previously EPFL,

@@ -1,0 +1,266 @@
+---
+title: "Example Project: CEO Salaries"
+output:
+  html_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message=FALSE, warning=FALSE)
+library(tidyverse)
+```
+
+## Comments by the Teacher
+
+This is the final report for an imaginary project, which could arise from the `rough_work.Rmd` script. You can use this as an (imperfect) example for your future reports. Note that it is very different from the rough work:
+
+* there is more of verbal explanation,
+* figures are,
+    - fewer in quantity,
+    - centered and polished (readable lables, etc.),
+    - described in the text,
+    - have captions, where they are described again,
+* R code appears very rarely.
+
+In fact, it takes time to transform the rough work into a proper report. This is partly because letting the project lie for a day or two and then returning to it to produce this final report will provide a fresh view, resulting in a higher (second-iterate) quality. But more importantly, it should be this way: just a part of the rough works makes it to the final cut, while verbal explanations have to be improved for the final version. Actually, it is funny to compare that this final report lead me to a very different model than the rough work, since in the rough work I forgot to log-transform two variables at the beginning. :)
+
+So why do we even do both in Rmarkdown? Not only for reproducibility reasons, but this is really a sufficient reason. Wouldn't it be easier to perform rough work in an R script and then write the final report in Latex? Definitely not regarding reproducibility, but I also doubt it would be less time-consuming. And this is coming from someone that is actually more used to the R+Latex option. Also, note that this is still not a realistic real-world report that we tend to write in Latex. For example, in a real-world report one would never show all the diagnostic plots, but here you do it to show me an important part of your work. Now, imagine your Latex report is already written with all those plots, and then you realize it would be better to rescale a variable...
+
+## 1. Introduction
+
+The CEO pay has skyrocketed about 14 times since 1978, and in 2021 CEOs were paid 399 times more than a typical worker ([external link](https://www.epi.org/publication/ceo-pay-in-2021/)). CEO salaries vary widely, and are generally considered to depend on many factors, including but not limited to age, education, professional experience, background, etc. We can add some more to this appetizer paragraph, if we find the project interesting and want to show our enthusiasm and spawn more interest.
+
+In this report, we work with a data set from 1991 published in the Forbes Magazine in 1992, providing us with the compensations of 100 CEOs of large US firms. Numerous regressors are available, including age, education level, background, or experience, as well as firm's sales and profits. Sadly, data on professional certificates and previous employment history are not available.
+
+We introduce a linear model that seeks to explain CEO salaries in terms of the previously mentioned variables. However, only CEO's education and percentage of firm's market value owned by the CEO, together with firm's sales and profits, are significant predictors included in our final model. Somewhat surprisingly, CEOs with higher levels of education tend to earn less than otherwise comparable CEOs.
+
+The outline of the remainder of this report is as follows. We first introduce the data in Section 2 and then briefly describe our model selection procedure leading to the final model in Section 3. We perform model diagnostics in Section 4, which is followed by sensitivity analysis in Section 5. We carefully interpret our model in Section 6 and provide some concluding remarks in Section 7.
+
+## 2. Data Characteristics
+
+The data were compiled by the Forbes Magazine.
+
+The outcome of interest is the compensation (variable `comp`), i.e. the 1991 CEO's salary together with all other compensations and bonuses excluding stock gains. As numerical variables we have
+
+* CEO's age in years,
+* CEO's number of years employed by the firm,
+* number of years as the firm CEO,
+* percentage of the firm's market value owned by the CEO, and
+* market value of the CEO's stock, together with
+* firm's 1991 sales, and
+* firm's 1991 profits.
+
+Categorical variables include
+
+* education (three levels: no college degree, undergraduate degree, or graduate degree),
+* background type (10 levels including technical, insurance, banking, etc.).
+
+We also have company names and birthplaces of the CEOs, but we make no use of these as they are mostly unique.
+
+Figure 1 shows the data, where the response `comp`, the firms `sales`, and the percentage of stocks owned by the CEO `pcntown` as well as the stock value owned `val` have been log-transformed. Without this log-tranformation, one could wrongly assume that most CEOs own no stock, while in fact all do own at least some small amount. We can also see that the first level of education (no college degree) is underrepresented in the data, which is also the case for two levels of the background variable.
+
+```{r, fig.align="center", fig.cap="Figure 1: Histograms for the individual variables, `sales`, the response `comp` and the percentage of stocks owned `pcntown` are log-transformed."}
+read_data <- function(Rmarkdown=T){
+  if(Rmarkdown){
+    Data <- read.csv("../Project-0/CEO_compensations.csv")
+  }else{
+    Data <- read.csv("./Project-0/CEO_compensations.csv")
+  }
+  return(Data)
+}
+Data <- read_data()
+# Data <- read_data(F)
+names(Data) <- tolower(names(Data))
+
+# sum(Data$pcntown == 0)
+# sum(Data$val==0)
+# Data %>% select(-company,-birth) %>% pairs()
+
+Data <- Data %>% mutate(backgrd=as.factor(backgrd), educatn=as.factor(educatn), comp=log(comp), sales=log(sales), pcntown=log(pcntown), val=log(val)) %>%
+  select(-birth,-company)
+
+Data %>% mutate(backgrd=as.numeric(backgrd), educatn=as.numeric(educatn)) %>% pivot_longer(everything()) %>%
+  ggplot(aes(value)) + facet_wrap(~ name, scales = "free") + geom_histogram()
+```
+
+## 3. Model Selection
+
+We started with the full model, and immediately simplified to a model without variables background, tenure, expertise, and stock value, with p-value 0.59 obtained by the F-test. At this point, our model contained only two clearly significant variables (sales and profits) and other 3 variables (age, education, and percentage owned) that do not seem significant (p-values between 0.15 and 0.35). We tried to include interaction between our variable of interest (education) and the remaining four variables, but only one of them (with age and percentage of value owned) were close to being significant. At this point, residual plots suggested to allow a quadratic dependence on the percentage of stocks owned, which indeed turned out to be significant. 
+
+*Note*: All of this is available in the code below for reproducibility reasons, even though it not shown in the script.
+
+```{r, eval=F}
+m1 <- lm(comp~., data=Data)
+library(car)
+Anova(m1,type=2)
+m0 <- lm(comp~.-backgrd-tenure-exper-val, data=Data)
+anova(m0,m1)
+m1 <- m0
+anova(m1)
+resData <- Data
+resData$res <- resid(m1)
+resData %>% mutate(backgrd=as.numeric(backgrd), educatn=as.numeric(educatn)) %>% pivot_longer(-res) %>%
+  ggplot(aes(y=res,x=value)) + facet_wrap(~ name, scales = "free") + geom_point()
+
+library(car)
+Anova(m1,type=2)
+
+m1 <- lm(comp ~ educatn*(age+sales+pcntown+prof), data=Data)
+Anova(m1,type=2)
+m0 <- lm(comp ~ educatn*age+sales+prof+pcntown, data=Data)
+anova(m0,m1)
+
+m1 <- m0
+m0 <- lm(comp ~ age+pcntown+sales+prof, data=Data)
+anova(m0,m1)
+
+resData <- Data
+resData$res <- resid(m1)
+resData %>% mutate(backgrd=as.numeric(backgrd), educatn=as.numeric(educatn)) %>% pivot_longer(colnames(resData)[colnames(resData) != "res"]) %>%
+  ggplot(aes(y=res,x=value)) + facet_wrap(~ name, scales = "free") + geom_point() + geom_smooth()
+
+mfinal <- m2 <- lm(comp ~ educatn*age+sales+prof+pcntown+I(pcntown^2), data=Data)
+anova(m1,m2)
+
+m0 <- lm(comp ~ age+sales+prof+pcntown+I(pcntown^2), data=Data)
+anova(m0,mfinal)
+
+Anova(mfinal,type=2)
+```
+
+The summary for our final model is as follows:
+
+```{r}
+Data <- Data %>% mutate(age=age-mean(age)) # what if I didn't center!
+mfinal <- lm(comp ~ educatn*age+sales+prof+pcntown+I(pcntown^2), data=Data)
+summary(mfinal)
+```
+
+That is the CEO's compensation depends on the interaction between his age and education, as well as on the firms sales and profits, and the percentage of stocks owned by the CEO. While it does not appear to be the case from the summary, the only variable that is on the edge of significance is age with p-value equal to 0.066. Since this is closely tied to education, we decide to keep it in the model.
+
+## 4. Residual Diagnostics
+
+Figure 2 shows residual diagnostics for the final model and Figure 3 plots the model residuals against the all potentially useful regressors available. The fit appears good overall, but we can see several problematic observations. These are all relatively highly paid CEOs of companies with relatively high sales but mediocre profits. We will examine how these problematic observations affect the effets of our variable of interest in the following section.
+
+*Note*: Notice how the histogram below is obviously different from the other two plots, which is quite ugly. For a proper publication, we would naturally have to deal with this (consistency!). Here, it is not so important to draw a box around the histogram, plotting the one missing tickmark on the x-axis, or making sure that the font of the `main` is the same for the three plots. But we should not be lazy and at least replace "resid(mfinal)" for "Residuals".
+
+```{r, fig.align="center", fig.height=3, fig.cap="Figure 2: Residual plots for the final model with the Cook's distance contours drawn at 8/(N-2p) and 4/N."}
+par(mfrow=c(1,3))
+N <- dim(Data)[1]
+p <- length(coef(mfinal)) # just a coincidence that this is equal to dim(Data)[2]
+plot(mfinal,c(1,5),cook.levels=c(8/(N-2*p), 4/N))
+hist(resid(mfinal),freq=F, breaks=20)
+points(-300:300/100,dnorm(-300:300/100,0,sd(resid(mfinal))),type="l",col="red")
+```
+
+```{r, fig.align="center", fig.cap="Figure 3: Residuals vs. the regressors (the response is also included)."}
+resData <- Data
+resData$res <- resid(mfinal)
+resData %>% mutate(backgrd=as.numeric(backgrd), educatn=as.numeric(educatn)) %>% pivot_longer(-res) %>%
+  ggplot(aes(y=res,x=value)) + facet_wrap(~ name, scales = "free") + geom_point() #+ geom_smooth()
+```
+
+```{r, eval=F}
+which(cooks.distance(mfinal) > 0.1)
+Data[c(88,42,44,51,92),]
+```
+
+## 5. Stability/sensitivity Inspection
+
+We have considered one alternative model obtained to which we arrived originaly by wrongfully discarding age early. Furthermore, we have considered an oversimplified model containing only education and firm's sales as the sole two predictors. Together with the final model, the three model compared were:
+
+* final model: `comp ~ educatn*age+sales+prof+pcntown+I(pcntown^2)`,
+* alternative model: `comp~sales+educatn*pcntown+prof`, and
+* oversimplified model: `comp~sales+educatn`.
+
+While all three models provided decent residual plots, the final model is superior w.r.t. prediction. The table below shows 10-fold cross-validated mean squared prediction errors for the three models.
+
+```{r}
+library(knitr)
+library(kableExtra)
+load("../Project-0/cv_data_final.RData")
+ERR <- matrix(round(rowMeans(ERR),2),nrow = 1)
+colnames(ERR) <- c("final model","alternative model","oversimplified model")
+kable(ERR, align="c", caption = "Table 1: Cross-validated mean squared prediction errors for the three considered models.", table.attr = "style='width:50%;'", booktabs=T) %>% kable_styling(position = "center")
+  
+```
+
+*Note*: This table for just a three numbers is an overkill, I just wanted to show one way of creating tables.
+
+```{r, eval=F}
+# Data <- Data[-c(88,42,44,51,92),] ### if outliers should be discarded
+
+mfinal <- lm(comp ~ educatn*age+sales+prof+pcntown+I(pcntown^2), data=Data)
+malternative <- lm(comp~sales+educatn*pcntown+prof, data=Data)
+msimple <- lm(comp~sales+educatn,data=Data)
+summary(mfinal)
+summary(malternative)
+summary(msimple)
+
+resid_plot <- function(my_model){
+  par(mfrow=c(1,3))
+  N <- dim(Data)[1]
+  p <- length(coef(my_model)) # just a coincidence that this is equal to dim(Data)[2]
+  plot(my_model,c(1,5),cook.levels=c(8/(N-2*p), 4/N))
+  hist(resid(my_model),freq=F, breaks=20)
+  points(-300:300/100,dnorm(-300:300/100,0,sd(resid(my_model))),type="l",col="red")
+}
+resid_plot(mfinal)
+resid_plot(malternative)
+resid_plot(msimple)
+
+resData <- Data
+resData$res <- resid(mfinal)
+resData %>% mutate(backgrd=as.numeric(backgrd), educatn=as.numeric(educatn)) %>% pivot_longer(-res) %>%
+  ggplot(aes(y=res,x=value)) + facet_wrap(~ name, scales = "free") + geom_point() #+ geom_smooth()
+
+resData <- Data
+resData$res <- resid(malternative)
+resData %>% mutate(backgrd=as.numeric(backgrd), educatn=as.numeric(educatn)) %>% pivot_longer(-res) %>%
+  ggplot(aes(y=res,x=value)) + facet_wrap(~ name, scales = "free") + geom_point() #+ geom_smooth()
+
+resData <- Data
+resData$res <- resid(msimple)
+resData %>% mutate(backgrd=as.numeric(backgrd), educatn=as.numeric(educatn)) %>% pivot_longer(-res) %>%
+  ggplot(aes(y=res,x=value)) + facet_wrap(~ name, scales = "free") + geom_point() #+ geom_smooth()
+
+load("./Project-0/cv_data_final.RData")
+round(rowMeans(ERR),2)
+```
+
+## 6. Interpretation
+
+The regression function of our final model can be written as
+$$
+\mathbb{E} Y_n = \beta_0 + \alpha_1 \mathbb{I}_{[undergrad]} + \alpha_2 \mathbb{I}_{[graduate]}
+       + \beta_1 x + \gamma_1 x \mathbb{I}_{[undergrad]} + \gamma_2 x \mathbb{I}_{[graduate]} + \beta_3 z_1 + \beta_4 z_2 + \beta_5 w + \beta_6 w^2 
+$$
+where $x$ represents age centered at its mean (approximately 57 years), $w$ represents the percentage of firm's value owned, and $z_1$ and $z_2$ represent sales and profits, which are on the log-scale in millions of dollars. The estimated values of the parameters can be read from the `summary()` table above.
+
+Since the factor variable education interacts with age, we have the following interpretation for the parameter of interests (recall that the respons was log-transformed):
+
+* $\exp(\widehat{\alpha}_1) = 0.87$, i.e. compared to having no degree, having an undergraduate degree reduces the expected salary by 13 %,
+* $\exp(\widehat{\alpha}_2) = 0.82$, i.e. having a graduate degree amounts to expected reduction of another 5 % (compared to having an undergraduate degree only)
+* $\exp(\widehat{\beta}_1) = 1.09$, i.e. the expected salary increases exponentially with age, by about 9 % per year, for CEOs without a college degree, while
+* it increases only about 3 % for CEOs with an undergraduate degree ($\exp(\widehat{\beta}_1 + \widehat{\gamma}_1) = 1.03$), and
+* it even slightly decreases for CEOs with a gradute degree ($\exp(\widehat{\beta}_1 + \widehat{\gamma}_2) = 0.994$).
+
+Overall it seems that level of education has a negative impact on CEO salaries. Our model also suggests that CEOs salaries increase with increasing firm's sales (very significantly and the effect size is large) and to a much smaller extent with firm's profits (still significantly, but the effect is negligible).
+
+*Note*: We cannot really interpret the intercept, because it corresponds to an expected log-compensation in case of zero regressors, in particular in case of 1 million US dollars in sales. There is no firm with such a low sales in the data set, so interpreting the intercept would amount to an unmeaningful extrapolation (we should have centered `sales` somehow to have an interpretation for the intercept).
+
+```{r,eval=F}
+exp(coef(mfinal))
+```
+
+## 7. Discussion
+
+We haven't really explored interactions too much. For example, in the fit incorporating all the variables `sales` seems to be quite significant, and maybe we should have explored interactions with all the variables. On the other hand, we did explore the interactions with education, and they weren't significant. There is some residual effect for high `sales`, but we have not managed to exploit it using simple means.
+
+In our final model, the interpretation with respect to education sadly changes when 5 problematic observations (with the highest residuals and/or Cook's distance) are omitted. However, we found no valid reason to discard those 5 observations,. None of them taken individually is a clear outlier in the data set. Also, education is on the edge of significance. Hence we can only note that we would need a larger data set to pin down the effects of education more reliably.
+
+The main message of this analysis (education has negative impact on CEO salaries), though interesting, should not be overinterpreted into tabloid headlines such as "education sucks" because of many obvious biases. For example, we only have very large firms in our sample. There is also very few people without college degrees in our sample... could it be because not many people without education make it to CEOs of very large firms? We cannot really answer these questions based on this data set.
+
+The fact that expected salaries increase a lot with increasing sales but only negligibly with increasing profits is quite surprising. When we realize that this is not due to collinearity between sales and profits (they are not collinear), it is even disturbing. However, there can be multicollinearity with `age` and thus we would have to explore this issue more before drawing hard conclusions.
+
+Only after finishing the report, we have noticed that it would be meaningful to include the interaction between education and the quadratic effect of `pcntown`. This would indeed be significant and prediction with such a model would be midly improved.

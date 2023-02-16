@@ -1,0 +1,248 @@
+---
+title: "Example Project: CEO Salaries"
+output:
+  html_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message=FALSE, warning=FALSE)
+library(tidyverse)
+```
+
+## Assignment
+
+The data come from an article published in Forbes in 1992, providing
+
+* `comp` - CEO's 1991 salary together with all other compensations and bonuses but without stock gains, in thousands
+* `age` - CEO's age in years
+* `educatn` - education level: 1 for no college degree, 2 for undergrad, 3 for grad degree
+* `backgrd` - background type
+    - 0 for unknown
+    - 1 for technical
+    - 2 for insurance
+    - 3 for operations
+    - 4 for banking
+    - 5 for legal
+    - 6 for marketing
+    - 7 for administration
+    - 8 for sales
+    - 9 for financial
+    - 10 for journalism
+* `tenure` - number of years employed by the firm
+* `exper` - number of years as the firm CEO
+* `sales` - 1991 firm's sales revenues, in millions
+* `val` - market value of the CEO stock, in natural logarithmic units
+* `pcntown` - percentage of firm's market value owned by the CEO
+* `prof` - 1991 firm's profits, before taxes, in millions
+* `company` - firm's name
+* `birth` - CEO's birthplace
+
+There can be many different reasons behind fitting a model to such a data set, for example:
+
+* assessing the effect of a specific variable, e.g. education, on CEO salaries,
+* interpretable prediction, e.g. for salary negotiations purposes, or
+* determining whether is a specific observation unusual, e.g. for a litigation concerning compensations.
+
+Let's say we are going with the first option, and we are interested in the effect of education.
+
+**Notes**:
+
+* The section above is part of both this initial analysis just for convenience, to have the assignment at the same place as the solution.
+* The solution provided is not perfect by any means.
+    - for example, it seems that `pcntown` and `prof` are zero for most CEOs and we should consider adding some indicators
+    - the cross-validation we do at the end of the document (in a separate script) is computationally wasteful - we could do leave-one-out by only fitting the model once
+* I read data many time throughout the document, which is **bad**. I should read it once and somewhat keep track to what I do with my data. Anyway, for this purpose, I wrote the function `read_data()`, taking into account that the default working directory of the this Rmarkdown (when knitted) is different from the of our R project ("AppStat").
+    - it would be better to call log-transformed variable `xxx` e.g. by `log_xxx` and keeping both in the data instead of replacing `xxx` with its log-transformation - using this, I would only need to read data once and the ggplots of the variables would contain more info
+ 
+## Reading and Exploring data
+
+```{r}
+read_data <- function(Rmarkdown=T){
+  if(Rmarkdown){
+    Data <- read.csv("../Project-0/CEO_compensations.csv")
+  }else{
+    Data <- read.csv("./Project-0/CEO_compensations.csv")
+  }
+  return(Data)
+}
+Data <- read_data()
+# Data <- read_data(F)
+str(Data)
+names(Data) <- tolower(names(Data))
+
+Data %>% mutate(company=as.numeric(as.factor(company)), birth=as.numeric(as.factor(birth))) %>%
+  pivot_longer(everything()) %>%
+  ggplot(aes(value)) + facet_wrap(~ name, scales = "free") + geom_histogram()
+
+Data %>% select(-company,-birth) %>% pairs()
+
+Data <- Data %>% mutate(backgrd=as.factor(backgrd), educatn=as.factor(educatn), comp=log(comp)) %>%
+  select(-birth,-company)
+
+Data %>% mutate(backgrd=as.numeric(backgrd), educatn=as.numeric(educatn)) %>% pivot_longer(everything()) %>%
+  ggplot(aes(value)) + facet_wrap(~ name, scales = "free") + geom_histogram()
+```
+
+Education level and background should probably be factors, and we are discarding `birth` and `company` since those are mostly unique and hence we do not have enough data to take them into account in modeling. For the response, we take logarithm for obvious reasons.
+
+## First Model
+
+```{r}
+m1 <- lm(comp~., data=Data)
+anova(m1)
+m0 <- lm(comp~.-backgrd-tenure-exper-val, data=Data)
+anova(m0,m1)
+m1 <- m0
+anova(m1)
+```
+
+Did we miss anything:
+
+```{r}
+resData <- Data
+resData$res <- resid(m1)
+resData %>% mutate(backgrd=as.numeric(backgrd), educatn=as.numeric(educatn)) %>% pivot_longer(colnames(resData)[colnames(resData) != "res"]) %>%
+  ggplot(aes(y=res,x=value)) + facet_wrap(~ name, scales = "free") + geom_point()
+```
+
+There is some residual dependency on `sales`, which should have been taken on a log-scale in the first place. Let's do the same again but with the log:
+
+```{r}
+Data <- Data %>% mutate(sales=log(sales))
+m1 <- lm(comp~., data=Data)
+anova(m1)
+m0 <- lm(comp~.-backgrd-tenure-exper-val, data=Data)
+anova(m0,m1)
+m1 <- m0
+anova(m1)
+resData <- Data
+resData$res <- resid(m1)
+resData %>% mutate(backgrd=as.numeric(backgrd), educatn=as.numeric(educatn)) %>% pivot_longer(-res) %>%
+  ggplot(aes(y=res,x=value)) + facet_wrap(~ name, scales = "free") + geom_point()
+```
+
+Looks like a decent model, check residuals:
+
+```{r}
+par(mfrow=c(3,2))
+plot(m1,1:6)
+Data[58,]
+dev.off()
+hist(resid(m1),freq=F, breaks=20)
+points(-300:300/100,dnorm(-300:300/100,0,sd(resid(m1))),type="l",col="red")
+```
+
+There is the clear outlier visible on all the plots before, owning 1/3 of his firm with the largest market value. This might be the only observation making `pcntown`. But actually, it is not like that:
+
+```{r}
+m0 <- lm(comp~.-backgrd-tenure-exper-val, data=Data[-58,])
+summary(m0)
+m0 <- lm(comp~.-backgrd-tenure-exper-val-age, data=Data)
+anova(m0,m1)
+m1 <- lm(comp~educatn+sales+pcntown+prof, data=Data)
+summary(m1)
+```
+
+Since we are interested in the effect of education, let us take a look on interactions including education:
+
+```{r}
+m1 <- lm(comp~educatn*(sales+pcntown+prof), data=Data)
+anova(m1)
+m0 <- lm(comp~sales+educatn*pcntown+prof, data=Data)
+anova(m0,m1)
+m1 <- m0
+summary(m1)
+resData <- Data
+resData$res <- resid(m1)
+resData %>% mutate(backgrd=as.numeric(backgrd), educatn=as.numeric(educatn)) %>% pivot_longer(colnames(resData)[colnames(resData) != "res"]) %>%
+  ggplot(aes(y=res,x=value)) + facet_wrap(~ name, scales = "free") + geom_point()
+par(mfrow=c(3,2))
+plot(m1,1:6)
+hist(resid(m1),freq=F, breaks=20)
+points(-300:300/100,dnorm(-300:300/100,0,sd(resid(m1))),type="l",col="red")
+```
+
+The only significant interaction is with ownership percentage, and it does seem to improve the residuals mildly.
+
+## Interpretation
+
+```{r}
+Data <- read_data()
+names(Data) <- tolower(names(Data))
+Data <- Data %>% mutate(educatn=as.factor(educatn),comp=log(comp,2), sales=log(sales,2))
+mfinal <- lm(comp~sales+educatn*pcntown+prof, data=Data)
+summary(mfinal)
+```
+
+Compared to having no college education, expected salary of undergraduate CEOs is `exp(-0.61)=0.54` times smaller, hence it is almost halved, though this is not statistically significant (due to a small size of the no-college group) and expected salary of graduate CEOs is `exp(-1.11)=0.33` times smaller, statistically significant. In this interpretation, we are ignoring the `educatn:pcntown` interaction, hence this interpretation is valid only for CEOs that do not own stocks (which is a majority of them anyway).
+
+Given how small the no-college education group is, we could be interested rather in the difference between the undergrad and grad groups, which is given here
+
+```{r}
+Data <- read_data()
+names(Data) <- tolower(names(Data))
+Data <- Data %>% mutate(educatn=as.factor(-educatn),comp=log(comp,2), sales=log(sales,2))
+mfinal <- lm(comp~sales+educatn*pcntown+prof, data=Data)
+summary(mfinal)
+```
+
+i.e. compared to having a grad degree, expected salary of an undergrad degree is `exp(0.51)=1.65` times larger (again, for CEOs without stocks).
+
+## Further Checks
+
+We have already done residual diagnostics. Given our goal (assessing the effect of education) and given the fact that we do not have multiple candidate models, let's skip predictive checking and focus on sensitivity/stability. We haven't really done anything questionable with our variables apart from 2 things:
+
+* we have decided to include education as a factor (i.e. having 2 degrees of freedom), while it seems that including it as a numerical variable (i.e. with only a single degree of freedom) could have been enough
+* we have taken a log of sales but not log of profits, even though those two variables are somewhat similar
+    - also, we took the the log of sales to make the dependence more linear, but examining the residuals-against-sales plot closer (especially when we add `geom_smooth`) suggests we haven't really made the dependence entirely linear
+
+Apart from these two, it would be natural to consider
+
+* a model with influential observations and outliers removed
+* a simpler model `lm(comp~sales+educatn, data=Data)`
+
+Is our surprising interpretation that higher level of education has a negative impact on CEO compensations sensitive to the choices above?
+
+```{r}
+Data <- read_data()
+names(Data) <- tolower(names(Data))
+Data <- Data %>% mutate(educatn=as.factor(educatn),comp=log(comp,2), sales=log(sales,2))
+fit <- lm(comp~educatn+sales,data=Data)
+summary(fit)
+which(hatvalues(m1)>0.5)
+fit <- lm(comp~sales+educatn*pcntown+prof, data=Data[-c(50,51,58,70,88),])
+summary(fit)
+Data <- read_data()
+names(Data) <- tolower(names(Data))
+Data <- Data %>% mutate(educatn=as.factor(educatn),comp=log(comp))
+fit <- lm(comp~sales+I(sales^2)+educatn*pcntown+prof, data=Data)
+summary(fit)
+resData <- Data %>% select(-company,-birth)
+resData$res <- resid(fit)
+resData %>% mutate(backgrd=as.numeric(backgrd), educatn=as.numeric(educatn)) %>% pivot_longer(colnames(resData)[colnames(resData) != "res"]) %>%
+  ggplot(aes(y=res,x=value)) + facet_wrap(~ name, scales = "free") + geom_point()
+```
+
+The negative effect of education is not sensitive with respect to our model choice.
+
+Just for fun, let's say we want to see whether our final model improves prediction over the simpler model. We will cross-validate MSE, and do it in a separate script so we don't have to wait for the CV to run whenever we knit this Rmarkdown file.
+
+```{r}
+load("cv_data.RData")
+rowMeans(ERR)
+```
+
+We can see that our final model is better.
+
+It seems there is no problem with multicollinearity from the point of the variance inflation factor, but the condition number is really large, though this is also the case for simpler models and it is caused by the fact that there are very few observations in the no-degree class of the education variable, which are all very similar w.r.t. sales:
+
+```{r}
+library(car)
+vif(mfinal)
+kappa(vcov(mfinal))
+msimpler <- lm(comp~sales+educatn, data=Data)
+kappa(vcov(msimpler))
+```
+
+We cannot really do anything about this, it is just important to be aware of our model's limitations.
