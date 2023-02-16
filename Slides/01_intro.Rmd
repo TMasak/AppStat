@@ -226,18 +226,22 @@ The remainder is subject to changes:
 * 5 projects will form your portfolio
     - Project 1 is mandatory
     - at least one from Projects 2-3
-        - you will get a detailed feedback on this
+        - you will get a detailed feedback on this one
     - at least one from Projects 4-5
     - at least one from Projects 6-7
 * Project 1 (linked heavily to MATH-517) gets a grade of its own, the rest will be graded during final examination
 
 \smallskip\smallskip
 \begin{exampleblock}{}
+\vspace*{-1mm}
 $$
-\textbf{Final Grade} = ab \vspace*{3mm}
+\textbf{Final Grade} = ab \vspace*{2mm}
 $$
 \end{exampleblock}
 where $a \in \{0,0.25,0.5,0.75,1\}$ is the grade for Project 1, and $b \in [1,6]$ is the grade for your portfolio to be determined during the oral exam.
+
+\vspace{-2mm}
+* this course is "without withdrawal" (submit Project 1 $\equiv$ commit)
 
 ## Project Submission
 
@@ -328,7 +332,7 @@ Simulate diameters from a distribution, which is as close as possible to the obs
 3. Test whether the diameters come from a bi-log-normal distribution.
     - parametric Bootstrap
 
-## StatComp Content
+## MATH-517 Content
 
 * Week 1: Introduction & Software
 * Week 2: Ethics & Reproducibility
