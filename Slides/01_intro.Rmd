@@ -147,7 +147,7 @@ Learning Prerequisites (from the course book):
 
 * REQUIRED COURSES
     - Regression Analysis (a.k.a. regression methods)
-    - **Statistical Computation and Visualization**
+    - **Statistical Computation and Visualization** (MATH-517)
 * RECOMMENDED COURSES
     - Time Series
     - Statistical Inference
@@ -157,7 +157,7 @@ Learning Prerequisites (from the course book):
 Learning Prerequisites (my strong personal recommendation):
 
 * required course:
-    - **Statistical Computation and Visualization**
+    - **Statistical Computation and Visualization** (MATH-517)
 * somewhat helpful courses:
     - Regression Methods
     - Time Series
@@ -213,28 +213,31 @@ The remainder is subject to changes:
 * **Week 12**: Functional Data Analysis            
     - Project 7: First Wave of Covid in the US      
 * Week 13: Functional PCA
-* Week 14: **Presentations**
-    - Project Presentations
+* Week 14: **Oral Exam**
+    - discussing your submitted projects
     
-**Project deadlines**: Project assigned on (Monday of) Week $X$ has deadline on Sunday evening of Week $X+1$, i.e. there are always 2 weeks per project.
+**Project deadlines**: Project assigned on (Monday of) Week $X$ has a deadline on Sunday evening of Week $X+1$, i.e. there are always 2 weeks per project.
 
 ## Evaluation
 
 * 7 projects in total (for you to choose from)
     - specific data and tasks to perform
-* 5 projects to be handed in
+    - done individually, but exchange of ideas (but not the code) is encouraged
+* 5 projects will form your portfolio
     - Project 1 is mandatory
     - at least one from Projects 2-3
+        - you will get a detailed feedback on this
     - at least one from Projects 4-5
     - at least one from Projects 6-7
-* one of the projects (such that the conditions above are still met) can be replaced by presenting one of the first 4 upon teacher's consent
-    - i.e. the presentations are voluntary
+* Project 1 (linked heavily to MATH-517) gets a grade of its own, the rest will be graded during final examination
 
-\bigskip
-**Final grade**: each project will get a grade $g_i \in \{0,0.25,0.5,0.75,1\}$, $i=1,\ldots,5$, and the final grade will be
+\smallskip\smallskip
+\begin{exampleblock}{}
 $$
-1 + \sum g_i \in [1,6].
+\textbf{Final Grade} = ab \vspace*{3mm}
 $$
+\end{exampleblock}
+where $a \in \{0,0.25,0.5,0.75,1\}$ is the grade for Project 1, and $b \in [1,6]$ is the grade for your portfolio to be determined during the oral exam.
 
 ## Project Submission
 
@@ -255,10 +258,10 @@ Moodle: link to the `Project-X` folder will be submitted to the respective Moodl
 
 ## Grading
 
-The grades $g_i$ will be reflecting on the quality of the final report, which is expected to
+The grade will reflect on the quality of the final report, which is expected to
 
 * identify questions of interest
-    - some initial questions will be provided during the lectures together with the data
+    - some will be provided during the lectures together with the data
 * choose appropriate models to analyze the data
     - demonstrate understanding of the models used
 * implement the models in R
