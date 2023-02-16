@@ -141,27 +141,6 @@ knitr::include_graphics('../Plots/data_science_cycle.png')
 
 # Organization
 
-## Prerequisites
-
-Learning Prerequisites (from the course book):
-
-* REQUIRED COURSES
-    - Regression Analysis (a.k.a. regression methods)
-    - **Statistical Computation and Visualization** (MATH-517)
-* RECOMMENDED COURSES
-    - Time Series
-    - Statistical Inference
-
-\bigskip    
-\pause
-Learning Prerequisites (my strong personal recommendation):
-
-* required course:
-    - **Statistical Computation and Visualization** (MATH-517)
-* somewhat helpful courses:
-    - Regression Methods
-    - Time Series
-    
 ## Classes
 
 **Lectures**
@@ -184,6 +163,27 @@ Actually, it should be
 
 * 1 h of lecture +
 * 3 h of project work
+
+## Prerequisites
+
+Learning Prerequisites (from the course book):
+
+* REQUIRED COURSES
+    - Regression Analysis (a.k.a. regression methods)
+    - **Statistical Computation and Visualization** (MATH-517)
+* RECOMMENDED COURSES
+    - Time Series
+    - Statistical Inference
+
+\bigskip    
+\pause
+Learning Prerequisites (my strong personal recommendation):
+
+* required course:
+    - **Statistical Computation and Visualization** (MATH-517)
+* somewhat helpful courses:
+    - Regression Methods
+    - Time Series
 
 ## Content
 
@@ -218,6 +218,59 @@ The remainder is subject to changes:
     
 **Project deadlines**: Project assigned on (Monday of) Week $X$ has a deadline on Sunday evening of Week $X+1$, i.e. there are always 2 weeks per project.
 
+## Project Submission
+
+RStudio + R Markdown + Github:
+
+* create **private** `AppStat-SCIPER` folder on Github
+    - share the folder with users `TMasak` and `dufourc1`
+* one sub-folder `Project-X` for every project, containing
+    - the data used
+    - `rough_work.Rmd` and the resulting `rough_work.html`
+    - `Project-X.Rmd` and the resulting `Project-X.html`, which is the final report to be graded
+    - optionally external scripts containing demanding calculations and `.RData` files storing their
+    - grading based on `Project-X.html`, other files are for **reproducibility** and cross-checking
+* check out an [example project](https://github.com/TMasak/AppStat/tree/main/Project-0)
+    - we will go through it on Week 2
+    
+Moodle: link to the `Project-X` folder will be submitted to the respective Moodle assignment.
+
+## Evaluation
+
+The grade will reflect on the quality of the final report, which is expected to
+
+* identify questions of interest
+    - some will be provided during the lectures together with the data
+* choose appropriate models to analyze the data
+    - demonstrate understanding of the models used
+* implement the models in R
+* critically evaluate shortcomings of your models (model diagnostics)
+    - a good solutions provides more than one model at first and eventually compares those
+* use a final model to answer the questions of interest
+
+## Evaluation
+
+It is imperative that the final report is
+
+* readable
+    - figures need to have self-explanatory captions, appropriate font size, and be generally of a decent quality
+    - there should be no code in the report, unless it significantly improves clarity of the report (e.g. R table instead of a Latex table is permitted for simplicity) and even in such a case it has to be verbally explained around any code chunk what it does (the reader is not expected to understand R commands)
+* reproducible
+    - i.e. the R Markdown file can be run again on a different machine inside your Github repo
+    - code contains comments
+    
+This makes projects iterative work, where most of the work done is underrepresented in the final report
+
+## Report Writing
+
+Some (paraphrased) quotes:
+
+\bigskip
+> If a work is not compiled into a report, it does not exist. If the report is not readable and reproducible, the work is useless.
+
+\bigskip
+> Think about what you want to write and then write it as clearly and economically as possible. That is all there is to academic writing.
+
 ## Evaluation
 
 * 7 projects in total (for you to choose from)
@@ -242,60 +295,6 @@ where $a \in \{0,0.25,0.5,0.75,1\}$ is the grade for Project 1, and $b \in [1,6]
 
 \vspace{-2mm}
 * this course is "without withdrawal" (submit Project 1 $\equiv$ commit)
-
-## Project Submission
-
-RStudio + R Markdown + Github:
-
-* create **private** `AppStat-SCIPER` folder on Github
-    - share the folder with users `TMasak` and `dufourc1`
-* one sub-folder `Project-X` for every project, containing
-    - the data used
-    - `rough_work.Rmd` and the resulting `rough_work.html`
-    - `Project-X.Rmd` and the resulting `Project-X.html`, which is the final report to be graded
-    - optionally external scripts containing demanding calculations and `.RData` files storing their
-    - grading based on `Project-X.html`, other files are for **reproducibility** and cross-checking
-* check out an [example project](https://github.com/TMasak/AppStat/tree/main/Project-0)
-    - we will go through it on Week 2
-    
-Moodle: link to the `Project-X` folder will be submitted to the respective Moodle assignment.
-
-## Grading
-
-The grade will reflect on the quality of the final report, which is expected to
-
-* identify questions of interest
-    - some will be provided during the lectures together with the data
-* choose appropriate models to analyze the data
-    - demonstrate understanding of the models used
-* implement the models in R
-* critically evaluate shortcomings of your models (model diagnostics)
-    - a good solutions provides more than one model at first and eventually compares those
-* use a final model to answer the questions of interest
-
-## Grading
-
-It is imperative that the final report is
-
-* readable
-    - figures need to have self-explanatory captions, appropriate font size, and be generally of a decent quality
-    - there should be no code in the report, unless it significantly improves clarity of the report (e.g. R table instead of a Latex table is permitted for simplicity) and even in such a case it has to be verbally explained around any code chunk what it does (the reader is not expected to understand R commands)
-* reproducible
-    - i.e. the R Markdown file can be run again on a different machine inside your Github repo
-    - code contains comments
-    
-This makes projects iterative work, where most of the work done is underrepresented in the final report
-
-## Report Writing
-
-Some (paraphrased) quotes:
-
-\bigskip
-> If a work is not compiled into a report, it does not exist. If the report is not readable and reproducible, the work is useless.
-
-\bigskip
-> Think about what you want to write and then write it as clearly and economically as possible. That is all there is to academic writing.
-
 
 # Project 1
 
