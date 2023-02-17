@@ -48,7 +48,7 @@ Example:
 \includegraphics[width=0.5\textwidth]{../Plots/hollerith_machine.jpg}
 \end{center}
 
-## Today
+## Data Today
 
 * applied statistics
 * data analytics
@@ -227,7 +227,7 @@ RStudio + R Markdown + Github:
 * one sub-folder `Project-X` for every project, containing
     - the data used
     - `rough_work.Rmd` and the resulting `rough_work.html`
-    - `Project-X.Rmd` and the resulting `Project-X.html`, which is the final report to be graded
+    - `Project-X.Rmd` and the resulting `Project-X.html`, which is the final report
     - optionally external scripts containing demanding calculations and `.RData` files storing their
     - grading based on `Project-X.html`, other files are for **reproducibility** and cross-checking
 * check out an [example project](https://github.com/TMasak/AppStat/tree/main/Project-0)
@@ -237,15 +237,16 @@ Moodle: link to the `Project-X` folder will be submitted to the respective Moodl
 
 ## Evaluation
 
-The grade will reflect on the quality of the final report, which is expected to
+The grade will reflect on the quality of the projects, which are expected to
 
 * identify questions of interest
     - some will be provided during the lectures together with the data
 * choose appropriate models to analyze the data
     - demonstrate understanding of the models used
 * implement the models in R
+    - though this is probably not displayed in the report
 * critically evaluate shortcomings of your models (model diagnostics)
-    - a good solutions provides more than one model at first and eventually compares those
+    - a good solutions may provide more than one model at first and eventually compares those
 * use a final model to answer the questions of interest
 
 ## Evaluation
@@ -254,12 +255,12 @@ It is imperative that the final report is
 
 * readable
     - figures need to have self-explanatory captions, appropriate font size, and be generally of a decent quality
-    - there should be no code in the report, unless it significantly improves clarity of the report (e.g. R table instead of a Latex table is permitted for simplicity) and even in such a case it has to be verbally explained around any code chunk what it does (the reader is not expected to understand R commands)
+    - there should be no code in the report, unless it significantly improves clarity of the report (e.g. R table instead of a Latex table is permitted for simplicity) and even in such a case it has to be verbally explained around any code chunk what it actually does
 * reproducible
-    - i.e. the R Markdown file can be run again on a different machine inside your Github repo
-    - code contains comments
+    - i.e. the R Markdown file can be run again on a different machine inside a copy of your Github repo
+    - code is well commented
     
-This makes projects iterative work, where most of the work done is underrepresented in the final report
+This makes projects iterative work, where most of the work done (e.g. data exploration and model selection) is underrepresented in the final report.
 
 ## Report Writing
 
@@ -276,7 +277,7 @@ Some (paraphrased) quotes:
 * 7 projects in total (for you to choose from)
     - specific data and tasks to perform
     - done individually, but exchange of ideas (but not the code) is encouraged
-* 5 projects will form your portfolio
+* 5 projects will form your chosen portfolio
     - Project 1 is mandatory
     - at least one from Projects 2-3
         - you will get a detailed feedback on this one
@@ -318,7 +319,8 @@ head(Data)
 Simulate diameters from a distribution, which is as close as possible to the observed data, in order to study aeolian transport of snow using certain numerical models.
 
 * i.e. the goal is to do Monte Carlo: **how to simulate snow-flake diameters that are compatible with the data?**
-* it is assumed that a mixture of two log-normal distributions is a good model.
+
+Expert knowledge: a mixture of two log-normal distributions is a good model for the diameters.
 
 ## Tasks for You
 
