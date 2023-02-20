@@ -297,6 +297,23 @@ where $a \in \{0,0.25,0.5,0.75,1\}$ is the grade for Project 1, and $b \in [1,6]
 \vspace{-2mm}
 * this course is "without withdrawal" (submit Project 1 $\equiv$ commit)
 
+## References (for the 1st half of this course)
+
+\footnotesize
+* Venables & Ripley (2002) Modern Applied Statistics with S (4th ed.)
+    - while S is the predecessor of R, it has basically the same syntax (though some packages went some way since 2002)
+    - an amazing reference (though a bit hard to swallow with little previous exposition to the material)
+* Wood (2017) Generalized Additive Models: an Introduction with R (2nd ed.)
+    - even though mainly about GAMs, this book has a short and practical exposition to linear models and GLMs that has a value of its own
+    - computational flavor
+* Davison (2003) Statistical Models
+    - nice reference due to the breadth, more self-contained than Venables & Ripley, but no `R` code
+* Gelman & Hill (2006) Data Analysis Using Regression and Multilevel/Hierarchical Models
+    - focuses very much on interpretation
+    - somehow an opposite of Venables & Ripley in that it is eloquent/lengthy and not always to the point (or precise)
+* Wickham & Grolemund (2017) [R for Data Science](https://r4ds.had.co.nz/index.html)
+    - useful guide to `tidyverse`, i.e. data exploration and manipulation
+
 # Project 1
 
 ## Data

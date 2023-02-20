@@ -668,12 +668,12 @@ For sensitivity inspection, predictive checking, and more careful interpretation
 * there is also a `rough_work` script and a separate `cv-script`
 * you can use this as a guidance for your project reports
 
-## References
+## References (for the 1st half of this course)
 
 \footnotesize
 * Venables & Ripley (2002) Modern Applied Statistics with S (4th ed.)
-    - while S is the predecessor of R, it has basically the same syntax and this remains to be an amazing and contemporary book!
-    - a great reference for the whole course (though every topic probably requires a previous exposition)
+    - while S is the predecessor of R, it has basically the same syntax (though some packages went some way since 2002)
+    - an amazing reference (though a bit hard to swallow with little previous exposition to the material)
 * Wood (2017) Generalized Additive Models: an Introduction with R (2nd ed.)
     - even though mainly about GAMs, this book has a short and practical exposition to linear models and GLMs that has a value of its own
     - computational flavor
