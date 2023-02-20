@@ -169,7 +169,7 @@ Actually, it should be
 Learning Prerequisites (from the course book):
 
 * REQUIRED COURSES
-    - Regression Analysis (a.k.a. regression methods)
+    - Regression Analysis (a.k.a. Regression Methods)
     - **Statistical Computation and Visualization** (MATH-517)
 * RECOMMENDED COURSES
     - Time Series
@@ -182,8 +182,9 @@ Learning Prerequisites (my strong personal recommendation):
 * required course:
     - **Statistical Computation and Visualization** (MATH-517)
 * somewhat helpful courses:
-    - Regression Methods
+    - Regression Methods (and Linear Models by extension)
     - Time Series
+    - Statistical Inference
 
 ## Content
 
