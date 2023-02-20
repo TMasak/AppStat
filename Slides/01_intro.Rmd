@@ -196,7 +196,7 @@ Learning Prerequisites (my strong personal recommendation):
 * Week 4: Generalized Linear Models
 * **Week 5**: Poisson Regression
     - Project 3: Premier League Data
-* Week 6: TBD
+* Week 6: more on GLMs
 * **Week 7**: Mixed Models
     - Project 4: U.S. Presidential Elections
 * Free Week: Easter Holidays
