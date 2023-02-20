@@ -8,7 +8,7 @@
 
 All course materials will come here, in this repo. Check out [this
 manual](https://htmlpreview.github.io/?https://github.com/TMasak/StatComp/blob/master/Manuals/02_Github.html)
-from the previous course (MATH-517 Statisticl Computation and
+from the previous course (MATH-517 Statistical Computation and
 Visualization, a **mandatory prerequisite**, the course repo
 [here](https://github.com/TMasak/StatComp)) to see how to pull this repo
 (do not manually download the slides, etc.).
