@@ -3,7 +3,7 @@ title: "Week 2: Linear Models - a Practical Recap"
 subtitle: "MATH-516 Applied Statistics"
 author: "Tomas Masak"
 # date: "`r format(Sys.time(), '%b %d, %Y')`"
-date: "Feb 20th 2023"
+date: "Feb 27th 2023"
 output: beamer_presentation
 classoption: "presentation"
 theme: "Madrid"
@@ -136,7 +136,7 @@ $$
 \end{exampleblock}
 
 * the model is linear because the dependency on the parameters $\beta=(\beta_0,\beta_1,\ldots,\beta_{p-1})^\top$ is linear
-* we will assume that the the model is full-rank: $P(\mathrm{rank}(X)=p)=1$ implying $p \leq n$
+* we will assume that the the model is full-rank: $P(\mathrm{rank}(\mathbf X)=p)=1$ implying $p \leq n$
 * we do not assume Gaussianity here
     - many results require it, but it can be mostly bypassed with asymptotics
 * we assume homoscedasticity ($\mathrm{var}(Y \mid \mathbf X) = \sigma^2 \mathbf I$)
@@ -165,7 +165,7 @@ If linear model holds for log-transformed response:
 * $\log(Y_n) = X_n^\top \beta + \epsilon$ $\Leftrightarrow$ $Y_n = e^{X_n^\top \beta} e^{\epsilon_n}$
 * since $\E[Y_n\mid X_n] = e^{X_n^\top \beta} \E e^{\epsilon_n} = e^{X_n^\top \beta + \log(\E e^{\epsilon_n})}$
     - we cannot interpret the intercept, but
-    - $\log(x_j) \mapsto \log(x_j) + 1$ can be interpreted as the $e^{\beta_j}$-multiplicative increase of the response, because
+    - $x_j \mapsto x_j + 1$ can be interpreted as the $e^{\beta_j}$-multiplicative increase of the response, because
     $$
     \frac{\E[Y_n \mid X_n=\tilde{x}^{(j)}]}{\E[Y_n \mid X_n = x]} = e^{\beta_j}
     $$
@@ -219,7 +219,7 @@ abline(coef(m3)[1]+coef(m3)[4],coef(m3)[2]+coef(m3)[6],col=3)
     - basis $\equiv$ orthonormal basis (for us)
     
 $$
-\mathbf I = \mathbf P^\top \mathbf P = \mathbf Q \mathbf Q^\top + \mathbf N \mathbf Q^\top \mathbf Q \mathbf N^\top + \mathbf N \mathbf N^\top = \mathbf Q \mathbf Q^\top + \mathbf N \mathbf N^\top =: \mathbf H + \mathbf M
+\mathbf I = \mathbf P^\top \mathbf P = \mathbf Q \mathbf Q^\top + \mathbf N \mathbf Q^\top + \mathbf Q \mathbf N^\top + \mathbf N \mathbf N^\top = \mathbf Q \mathbf Q^\top + \mathbf N \mathbf N^\top =: \mathbf H + \mathbf M
 $$
 
 * as projection matrices, $\mathbf H$ and $\mathbf M$ are
@@ -243,10 +243,10 @@ $$
 \textbf{Theorem. (Gauss-Markov)} Let $Y \mid \mathbf{X} \sim (\mathbf{X} \beta, \sigma^2 \mathbf I)$, then $\widehat{Y} = \mathbf H Y$ is the BLUE (best linear unbiased estimator) of Y and $\widehat{\beta} = (\mathbf X^\top \mathbf X)^{-1}\mathbf X^\top Y$ is the BLUE of $\beta$.
 \end{exampleblock}
 
-* $\widehat{Y} \mid \mathbf X \sim (0, \sigma^2 \mathbf H)$ and $E \mid \mathbf X \sim (0,\sigma^2 \mathbf M)$
+* $\widehat{Y} \mid \mathbf X \sim (\mathbf{X} \beta, \sigma^2 \mathbf H)$ and $E \mid \mathbf X \sim (0,\sigma^2 \mathbf M)$
     - e.g. $\E[E\mid \mathbf X] = \mathbf M \E Y = \mathbf M \mathbf X \beta = 0$ and $\var(E\mid \mathbf X) = \mathbf M \var(Y) \mathbf M^\top = \sigma^2 \mathbf M \mathbf M^\top = \sigma^2 \mathbf M$
 * hence $s^2 := \|E\|_2^2/(N-p)$ is an unbiased estimator of $\sigma^2$
-    - since $\E \|E\|_2^2 = \mathrm{tr}(\sigma^2 \mathbf M) = \sigma^2 \mathrm{tr}(\mathbf M) = \sigma^2 (n-p)$
+    - since $\E \|E\|_2^2 = \mathrm{tr}(\sigma^2 \mathbf M) = \sigma^2 \mathrm{tr}(\mathbf M) = \sigma^2 (N-p)$
     - $\|E\|_2^2$ is the residual sum of squares
     
 ## FWL Theorem
@@ -276,7 +276,7 @@ Then the least squares estimates of $\beta_2$ and $\gamma_2$ coincide.
 * then $Y = \mathbf Q_0 \mathbf Q_0^\top Y + \mathbf Q_1 \mathbf Q_1^\top Y + \mathbf N \mathbf N^\top Y = \widehat{Y}^0 + \underbrace{D + E}_{E^0} = \widehat{Y} + E$
 
 \begin{exampleblock}{}
-\textbf{Theorem.} Consider models $M$ and $M^0$ above and let $M^0$ hold with the assumption of Gaussianity, i.e. $Y\mid\mathbf{X} \sim \mathcal{N}_n(\mathbf X^0 \beta^0, \sigma^2 \mathbf I)$. Then $\|D\|_2^2 = \| E^0 \|_2^2 - \|E\|_2^2$ and
+\textbf{Theorem.} Consider models $M$ and $M^0$ above and let $M^0$ hold with the assumption of Gaussianity, i.e. $Y\mid\mathbf{X} \sim \mathcal{N}_N(\mathbf X^0 \beta^0, \sigma^2 \mathbf I)$. Then $\|D\|_2^2 = \| E^0 \|_2^2 - \|E\|_2^2$ and
 $$
 F = \frac{\frac{\| E^0 \|_2^2 - \|E\|_2^2}{p-p_0}}{\frac{\|E\|_2^2}{N-p}} \sim F_{p-p_0, N-p}
 $$
@@ -297,10 +297,10 @@ $$
 ## Uncertainty Quantification (cntd.)
 
 * if we want a CI for $y_\star$ itself, we have to through in the additional uncertainty:
-    - under the model: $y_\star = x_\star^\top \beta + \epsilon_\star$ where $\epsilon_\star \sim N(0,\sigma^2)$ is the error, i.e. $y_\star - x_\star^\top \beta \sim N(0,\sigma^2)$
-    - from the (proof of) theorem above: $x_\star^\top \widehat{\beta} - x_\star^\top \beta \sim N(0,\sigma^2 x_\star^\top (\mathbf X^\top \mathbf X)^{-1} x_\star)$
+    - under the model: $y_\star = x_\star^\top \beta + \epsilon_\star$ where $\epsilon_\star \sim \mathcal N(0,\sigma^2)$ is the error, i.e. $y_\star - x_\star^\top \beta \sim \mathcal N(0,\sigma^2)$
+    - from the (proof of the) theorem above: $x_\star^\top \widehat{\beta} - x_\star^\top \beta \sim \mathcal N(0,\sigma^2 x_\star^\top (\mathbf X^\top \mathbf X)^{-1} x_\star)$
     - and the two distributions above are independent (since the new error is independent of everything) hence:
-    $$y_\star - x_\star^\top \widehat{\beta} \sim N(0, \sigma^2[1+ x_\star^\top (\mathbf X^\top \mathbf X)^{-1} x_\star])$$
+    $$y_\star - x_\star^\top \widehat{\beta} \sim \mathcal N(0, \sigma^2[1+ x_\star^\top (\mathbf X^\top \mathbf X)^{-1} x_\star])$$
     - and from plugging in the estimator and Cramer-Slutzsky we obtain:
 $$
 \frac{y_\star - x_\star^\top \widehat{\beta}}{\sqrt{s^2[1+ x_\star^\top (\mathbf X^\top \mathbf X)^{-1} x_\star]}} \sim t_{N-p}
@@ -370,13 +370,13 @@ Still, this tends to favor larger models, so we have
     - have we "included all relevant predictors"?
     - can we even answer the questions of interest?
 2. independence
-    - errors have to be independent (or uncorrelated under Gaussianity)
+    - are errors independent? (or uncorrelated under Gaussianity)
 3. linearity
     - correct form for the expectation?
 4. homoscedasticity
-    - errors have the same variance
+    - do errors have the same variance?
 5. Gaussianity
-    - are the errors
+    - are the errors Gaussian?
     
 Also, we should check potentially problematic observations (outliers and leverage points).
 
@@ -457,7 +457,7 @@ summary(model)
 * `Residuals` provides a `summary` of the residuals
 * `Coefficients` provides a table with the estimates, their standard errors, values of the $T$-statistic and p-values of the student $t$-tests, and also significance codes for a visual appeal
     - one can have the first clues about which variables are significant from the $t$-tests, but it should always be decided by `anova` whether a variable should be dropped, e.g. here one would fit `submodel <- lm(y~1)` and call `anova(model,submodel)` to see whether the quadratic dependence on `x` can be removed
-* `Residual standard error` gives $\widehat{\sigma}$ where $\widehat{\sigma}^2= \| E \|_2^2/(n-p)$ and $n-p$ are the `degrees of freedom`
+* `Residual standard error` gives $\widehat{\sigma}$ where $\widehat{\sigma}^2= \| E \|_2^2/(N-p)$ and $N-p$ are the `degrees of freedom`
 * `Multiple R-squared` and `Adjusted R-squared` are self-explanatory
 * `F-statistic` for the model-submodel test between the model and intercept-only model
     - i.e. exactly `anova(model,submodel)` from the few lines above
@@ -482,9 +482,9 @@ summary(model)
     
 Depending on what we want...
 
-| Inference | Prediction |
-| --- | ----------- |
 | Statistics | Machine Learning |
+| --- | ----------- |
+| Inference | Prediction |
 | Manual | Automated |
 | Simple Models | (Mixures of) Complicated Models |
 | Model-submodel Tests | Prediction Error |
@@ -598,7 +598,7 @@ Anova(m1,type=2)
 ## Interaction
 
 * add interactions between `educatn` (variable of interest) and other variables
-* `Anova(m1,type=2)` suggests only `educatn*age` is significant
+* `Anova(m3,type=2)` suggests only `educatn*age` is significant
 
 Test this manually:
 
