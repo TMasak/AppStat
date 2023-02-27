@@ -32,7 +32,7 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
     - $Z_n \in \R^{q}$ are explanatory variables 
     - $Y_n$ are responses
 
-* model: $\E[Y_n\mid X_n] = \beta_0 f_0(Z_n) + \beta_1 f_1(Z_n) + \ldots + \beta_{p-1} f_{p-1}(Z_n)$ where
+* model: $\E[Y_n\mid Z_n] = \beta_0 f_0(Z_n) + \beta_1 f_1(Z_n) + \ldots + \beta_{p-1} f_{p-1}(Z_n)$ where
     - $f_j$ are known functions
 
 * model matrix:
@@ -51,7 +51,7 @@ $$
     - can be parametrized to many columns of $\mathbf X$
 
 * Example 1: polynomial regression of order $p$ in variable $Z$
-    - $\E[Y_N \mid Z_N] = \beta_0 + \beta_1 Z_n + \ldots + \beta_p Z_n$, i.e. the expected value of the response is a polynomial of order $p$ in the explanatory variable
+    - $\E[Y_N \mid Z_N] = \beta_0 + \beta_1 Z_n + \ldots + \beta_p Z_n^p$, i.e. the expected value of the response is a polynomial of order $p$ in the explanatory variable
     -
     $$
       \mathbf{X} = \begin{pmatrix} 1 & Z_1 & Z_1^2 & \ldots & Z_1^p \\
@@ -301,7 +301,7 @@ $$
     - from the (proof of the) theorem above: $x_\star^\top \widehat{\beta} - x_\star^\top \beta \sim \mathcal N(0,\sigma^2 x_\star^\top (\mathbf X^\top \mathbf X)^{-1} x_\star)$
     - and the two distributions above are independent (since the new error is independent of everything) hence:
     $$y_\star - x_\star^\top \widehat{\beta} \sim \mathcal N(0, \sigma^2[1+ x_\star^\top (\mathbf X^\top \mathbf X)^{-1} x_\star])$$
-    - and from plugging in the estimator and Cramer-Slutzsky we obtain:
+    - and by standardizing and plugging in the estimator the standard Gaussian becomes a $t$-distribution:
 $$
 \frac{y_\star - x_\star^\top \widehat{\beta}}{\sqrt{s^2[1+ x_\star^\top (\mathbf X^\top \mathbf X)^{-1} x_\star]}} \sim t_{N-p}
 $$
