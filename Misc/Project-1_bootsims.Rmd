@@ -1,0 +1,81 @@
+---
+title: "Project 1: Snow Particles"
+output:
+  html_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+N <- 100
+mu <- 0
+sigma <- 0.3
+X <- rlnorm(N,mu,sigma)
+hist(X, freq=F,xlim=c(0,3))
+x <- 1:501/100
+lambda_hat <- 1/mean(X) # MLE in exponential distribution
+points(x,dexp(x,lambda_hat),type="l")
+```
+
+Statistics visualized:
+
+```{r}
+stat_plot <- function(X){
+  lambda_hat <- 1/mean(X)
+  F_N <- ecdf(X)
+  plot(F_N)
+  F_N <- F_N(sort(X))
+  F_theta <- pexp(sort(X),lambda_hat)
+  points(sort(X),F_theta)
+  diff <- abs(F_N-F_theta)
+  T_stat <- max(diff)
+  ind <- which.max(diff)
+  points(c(sort(X)[ind],sort(X)[ind]),c(T_stat+F_N[ind],F_N[ind]),
+         type="l", col="red")
+}
+stat_plot(X)
+```
+
+Single draw in the parametric bootstrap:
+
+```{r}
+X_star <- rexp(N,lambda_hat)
+stat_plot(X_star)
+```
+
+Single draw in the non-parametric bootstrap:
+
+```{r}
+X_star <- X[sample(1:N,replace = T)]
+stat_plot(X_star)
+```
+
+Non-parametric bootstrap (does not reject):
+
+```{r}
+F_N <- ecdf(X)
+F_N <- F_N(sort(X))
+F_theta <- pexp(sort(X),lambda_hat)
+diff <- abs(F_N-F_theta)
+T_stat <- max(diff)
+B <- 1000
+T_star <- rep(0,B)
+for(b in 1:B){
+  # print(b)
+  X_star <- X[sample(1:N,replace = T)]
+  lambda_hat <- 1/mean(X_star)
+  F_N <- ecdf(X_star)
+  F_N <- F_N(sort(X))
+  F_theta <- pexp(sort(X),lambda_hat)
+  diff <- abs(F_N-F_theta)
+  T_star[b] <- max(diff)
+}
+mean(T_stat > T_star)
+```
+
+
+
+
