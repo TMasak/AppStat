@@ -30,7 +30,7 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE, fig.align=
 ## Linear Model
 
 * data for linear model: $(Y_1,X_1^\top)^\top,\ldots,(Y_N,X_N^\top)^\top$ where
-    - $Z_n \in \R^{q}$ are explanatory variables 
+    - $X_n \in \R^{q}$ are explanatory variables 
     - $Y_n$ are responses
 * what if the **responses** $Y_n \in \{0,1\}$ are **binary**?
 
@@ -168,7 +168,7 @@ legend("bottomright",legend=paste("AUC",AUC))
 ```
 --->
 
-## Problems
+## Problems with Least Squares for Discrete Responses
 
 Everything naturally generalizes to more regressors.
 
@@ -180,7 +180,7 @@ So least squares give us something, but:
     - poor interpretation of the coefficients
     - residuals can be huge (artificially)
 * uncertainty quantification does not work
-* model fit measures such as R-squared or AIC are not very informative
+* model fit measures such as R-squared or AIC are not informative
 * overall we have little guidance in model building and model comparison
 
 # Logistic Regression
