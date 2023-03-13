@@ -30,7 +30,7 @@ knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 \begin{exampleblock}{}
 \textbf{Definition.} The distribution of $Y$ is of exponential type if its density can be written as
 $$
-f(y,\theta,\varphi) = \exp\left( \frac{y\theta-b(\theta)}{\varphi} + c(y,\phi) \right)
+f(y,\theta,\varphi) = \exp\left( \frac{y\theta-b(\theta)}{\varphi} + c(y,\varphi) \right)
 $$
 where $\theta \in \R$ is the canonical parameter $\varphi \in (0,\infty)$ is the dispersion parameter, and $b,c$ are real functions.
 \end{exampleblock}
@@ -74,9 +74,9 @@ hence
 Firstly, assuming we know $\varphi$:
 
 * $\ell(\theta) \propto \sum_n \exp\left( \frac{Y_n\theta - b(\theta)}{\varphi} \right)$
-* $U_n(\theta) := \frac{\partial}{\partial \theta} \log f(Y_n,\theta,\varphi) = \frac{Y_n\theta - b(\theta)}{\varphi}$
+* $U_n(\theta) := \frac{\partial}{\partial \theta} \log f(Y_n,\theta,\varphi) = \frac{Y_n - b'(\theta)}{\varphi}$
 * MLE: $\bar{U}_N(\theta) := \frac{1}{N} \sum_n U(Y_n,\theta) \stackrel{!}{=} 0$ $\Leftrightarrow$ $\widehat{\theta} = (b')^{-1}(\bar{Y}_N)$ ... the MLE
-* Fisher information: $\bar{I}_N(\theta) = \frac{1}{N} \sum_n \frac{\partial}{\partial \theta} U(Y_n,\theta) = \frac{b''(\theta)}{\varphi} = I(\theta)$
+* Fisher information: $\bar{I}_N(\theta) = \frac{1}{N} \sum_n - \frac{\partial}{\partial \theta} U(Y_n,\theta) = \frac{b''(\theta)}{\varphi} = I(\theta)$
     - since $\mathrm{var}(Y) = \varphi b''(\theta)$, $I(\theta) > 0$ and the MLE is unique
     
 MLE theory $\Rightarrow$ $\sqrt{N}(\widehat{\theta} - \theta) \to \mathcal{N}(0, I^{-1}(\theta))$
@@ -93,7 +93,7 @@ MLE theory $\Rightarrow$ $\sqrt{N}(\widehat{\theta} - \theta) \to \mathcal{N}(0,
 \begin{itemize}
 \item the density $f_{Y_n \mid X_n}(y,\theta_n,\varphi)$ is of exponential type with only $\theta_n$ depending on $X_n$,
 \item $\theta_n$ depends on $X_n$ and $\beta$ via the linear predictor $\eta_n = X_n^\top \beta$, and
-\item there exists $g \in C^2$ strictly monotone such that $g(\mu_n) = \eta_n$ (where $\mu_n = \E[Y_n \mid X_n]$.
+\item there exists $g \in C^2$ strictly monotone such that $g(\mu_n) = \eta_n$, where $\mu_n = \E[Y_n \mid X_n]$.
 \end{itemize}
 \end{exampleblock}
 
@@ -148,7 +148,7 @@ hence
 
 The marginal density of $X$ can be dropped, so similarly to above:
 
-* $\ell(\theta) \propto \sum_n \exp\left( \frac{Y_n\theta - b(\theta)}{\varphi} \right)$, where
+* $\ell(\beta) \propto \sum_n \exp\left( \frac{Y_n\theta - b(\theta)}{\varphi} \right)$, where
     - $\theta_n =(b')^{-1}(\mu_n)$ and $\mu_n = g^{-1}(X_n^\top \beta)$
 * $U_n(\beta) := \frac{1}{\varphi} w(\mu_i) g'(\mu_i) (Y_n - \mu_n) X_n$, where $w(\mu_n) = \frac{1}{V(\mu_n)[g'(\mu_n)]^2}$
     - shown using the chain and inverse function rules
