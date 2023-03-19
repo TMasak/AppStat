@@ -1,0 +1,455 @@
+---
+title: "Week 5: Poisson Regression"
+subtitle: "MATH-516 Applied Statistics"
+author: "Tomas Masak"
+# date: "`r format(Sys.time(), '%b %d, %Y')`"
+date: "March 20th 2023"
+output: beamer_presentation
+classoption: "presentation"
+theme: "Madrid"
+colortheme: "seahorse"
+footer: "Copyright (c) 2023, EPFL"
+urlcolor: blue
+header-includes:
+  - \usepackage{bm}
+  - \newcommand{\E}{\mathbb{E}}
+  - \newcommand{\R}{\mathbb{R}}
+  - \newcommand{\argmin}{\mathrm{arg\,min\;}}
+  - \newcommand{\rank}{\mathrm{rank}}
+  - \newcommand\independent{\protect\mathpalette{\protect\independenT}{\perp}}\def\independenT#1#2{\mathrel{\rlap{$#1#2$}\mkern2mu{#1#2}}}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+library(tidyverse)
+```
+
+# Log-linear Model
+
+## Poisson is Exponential Family
+
+$$
+\begin{aligned}
+f(x) &= \frac{\lambda^x}{x!} e^{-\lambda} \quad \text{for} \quad x \in \{0,1,2 \ldots\} \text{ and } \lambda \in (0,\infty) \\
+&= \exp\big( x \log \lambda + -\lambda + \log(1/x!)\big)
+\end{aligned}
+$$
+hence
+
+* $\theta = \log \lambda$, $\varphi=1$, $b(\theta) = e^\theta$, and $c(x,\varphi) = \log(1/x!)$
+* $\mathrm{var}(Y) = \lambda$ and $\mu=\E X=\lambda$ $\Rightarrow$ $V(\mu) = \mu$
+* canonical link must satisfy $g(\mu) = \theta = \log \mu$
+    - i.e. $\mu_n = e^{X_n^\top \beta}$ this is why Poisson regression is sometimes called log-linear model
+
+## Interpreting Parameters
+
+* let $X_n^\top \beta = \beta_1 + X_{n,2} \beta_2 + \ldots + X_{n,p} \beta_p$
+* the intercept captures the expected frequency (count) with zero regressors:
+    - $\E[Y_n \mid X_{n,2}=\ldots=X_{n,p}=0] =: \lambda_0$
+    - $\Rightarrow \lambda_0 = e^{\beta_1}$ ... expected frequency with all-zero regressors
+* other coefficients capture proportional change in expected frequency (between two observations that differ by 1 in the corresponding regressor):
+    - let $x = (x_1,\ldots,x_p)^\top$ and $\tilde{x}^{(j)} = (x_1,\ldots,x_{j-1},x_j+1,x_{j+1},\ldots,x_p)^\top$
+    - $\E(Y_n \mid X_n = x) =: \lambda_n$ $\Rightarrow$ $\lambda_n = e^{\beta^\top x}$
+    - $\E(Y_n \mid X_n = \tilde{x}^{(j)}) =: \tilde{\lambda}_n^{(j)}$ $\Rightarrow$ $\tilde{\lambda}_n^{(j)} = e^{\beta^\top \tilde{x}^{(j)}}$
+    - dividing: $e^{\beta_j} = \tilde{\lambda}_n^{(j)}/\lambda_n$ ... proportional change when $X_{n,j} \mapsto X_{n,j}+1$
+
+## Small Example
+
+\scriptsize
+Noisy miners are small but aggressive native Australian birds. A study counted the birds in two hectare transects.
+
+```{r}
+library(GLMsData)
+data(nminer)
+names(nminer) <- tolower(names(nminer))
+K <- 5
+mybreaks <- c(-Inf, quantile(nminer$eucs,seq(0,1,by=1/K))[c(-1,-(K+1))]-0.5, Inf)
+means <- tapply( nminer$minerab, cut(nminer$eucs, mybreaks), "mean" )
+vars <- tapply( nminer$minerab, cut(nminer$eucs, mybreaks), "var" )
+```
+
+```{r,echo=T,fig.show='hold',out.width="35%",fig.dim=c(5,4),fig.align='center'}
+op <- par(mar=c(4,4,1,1))
+plot(log(means),log(vars)) # looks linear with slope 1 and intercept 0, which is exactly what Poisson regression needs (linear variance function and dispersion parameter equal to 1)
+gm1 <- glm(minerab ~ eucs, data=nminer, family=poisson(lin="log"))
+sum(residuals(gm1, type="pearson")^2)/(31-2) # indicates that the model is not great (should be close to 1), but that is hardly surprising given the plot
+plot(jitter(minerab) ~ eucs, data=nminer)
+abline(v=mybreaks, lty=2)
+x <- seq(0,30,length=100)
+points(x,exp(coef(gm1)[1] + x*coef(gm1)[2]),type="l")
+```
+
+<!---
+
+# Binned Variables
+
+## Binned Variables
+
+```{r,out.width="45%",fig.dim=c(6,4),fig.show="hold",fig.align='center'}
+op <- par(mar=c(4,4,1,2))
+set.seed(516)
+x <- runif(100)
+y <- cos(2*pi*x) + rnorm(100)
+plot(x,y,ylab="cos(2*pi*x)")
+points(sort(x), cos(2*pi*sort(x)),type="l",lwd=1.5)
+m1 <- lm(y~x)
+abline(coef(m1)[1],coef(m1)[2],col=2)
+x_cat <- cut(x,breaks=seq(0,1,by=0.1))
+m2 <- lm(y~x_cat-1)
+x_plot <- rep(seq(0,1,by=0.1),each=2)
+x_plot <- x_plot[c(-1,-length(x_plot))]
+points(x_plot,rep(coef(m2),each=2),type="l",col=4)
+x_cat <- cut(x,breaks=seq(0,1,by=0.2))
+m2 <- lm(y~x_cat-1)
+x_plot <- rep(seq(0,1,by=0.2),each=2)
+x_plot <- x_plot[c(-1,-length(x_plot))]
+points(x_plot,rep(coef(m2),each=2),type="l",col=3,lwd=1.5)
+
+x <- seq(0,1,length=100)
+y <- cos(2*pi*x)
+y_true <- y[c(11:20,41:50,1:10,31:40,61:70,91:100,71:80,51:60,81:90,21:30)]
+y <- y_true + rnorm(100)
+plot(x,y,ylab="cos(2*pi*x) reshuffled")
+points(x,y_true,type="l",lwd=1.5)
+m1 <- lm(y~x)
+abline(coef(m1)[1],coef(m1)[2],col=2)
+x_cat <- cut(x,breaks=seq(0,1,by=0.1))
+m2 <- lm(y~x_cat-1)
+x_plot <- rep(seq(0,1,by=0.1),each=2)
+x_plot <- x_plot[c(-1,-length(x_plot))]
+points(x_plot,rep(coef(m2),each=2),type="l",col=4,lwd=1.5)
+x_cat <- cut(x,breaks=seq(0,1,by=0.2))
+m2 <- lm(y~x_cat-1)
+x_plot <- rep(seq(0,1,by=0.2),each=2)
+x_plot <- x_plot[c(-1,-length(x_plot))]
+points(x_plot,rep(coef(m2),each=2),type="l",col=3)
+```
+
+* we should never do binning of the response and almost never of the regressors (unless we are forced to), because then we may be providing answers for a wrong question
+* on the other hand, once regressors are binned
+    - the model is more flexible
+    - we might not always know what is the correct order of bins (`x` may not be ordinal), smoothing might not help us (like it would on the left plot)
+* learn binning from the data? ... change point detection
+
+--->
+
+# Contingency Tables
+
+## All Variables Binned
+
+* often (e.g. sample surveys), all variables are categorical
+* say we have two variables $Y \in \{1,\ldots,I\}$ and $Z \in \{1,\ldots,J\}$
+* $(Y_1,Z_1)^\top,\ldots,(Y_N,Z_N) \stackrel{\independent}{\sim} (Y,Z)^\top$ is our random sample
+* then the frequencies $N_{ij} = \sum_n \mathbb{I}_{[Y=i,Z=j]}$ define a (two-way) contingency table
+
+\begin{center}
+\begin{tabular}{c|ccc|c}
+& $Y=1$ & $\cdots$ & $Z=J$ & $\sum$ \\
+\hline
+$Y=1$ & $N_{11}$ & $\cdots$ & $N_{1J}$ & $N_{1+}$ \\
+$\vdots$ & $\vdots$ & $\ddots$ & $\vdots$ & $\vdots$ \\
+$Y=I$ & $N_{I1}$ & $\cdots$ & $N_{IJ}$ & $N_{I+}$ \\
+\hline
+$\sum$& $N_{+1}$ & $\cdots$ & $N_{+J}$ & $N_{++} \equiv N$ \\
+\end{tabular}
+\end{center}
+
+* denote expected frequencies $m_{ij} = \E N_{ij}$
+    - and accordingly $m_{i+}$, $m_{+j}$ and $m_{++}=1$
+* denote probabilities of observing $(i,j)$ by $\pi_{ij} = P(X=i,Z=j)$
+    - and accordingly $\pi_{i+}$, $\pi_{+j}$ and $\pi_{++}=1$
+* if $(Y,Z) \independent N$, we have $m_{ij} = m_{++} \pi_{ij}$
+    - what we observe does not depend on how many times we draw
+    
+## Two Probabilistic Models
+
+1. $N_{ij} \stackrel{\independent}{\sim} Po(m_{ij})$
+    - $N$ itself is random here
+    - no. of observations $IJ$ is fixed (asymptotics?)
+    - if $m_{ij} = e^{\alpha + X_{ij}^\top \beta}$, we have a log-linear model
+        - elegant, exponential family, etc.
+        - $X_{ij}$ is the row of the design matrix (depends on the parametrization chosen for the factors)
+2. $(N_{11},\ldots,N_{IJ})^\top \sim Mult(N,\pi)$ with $\pi=(\pi_{11},\ldots,\pi_{IJ})^\top$
+    - $N$ is fixed here and it is the no. of observations drawn from $Mult(1,\pi)$ $\Rightarrow$ classical MLE asymptotics
+    - not as elegant to work with, luckily we don't need to...
+    - $\pi_{ij} = m_{ij}/m_{++} = e^{\alpha + X_{ij}^\top \beta} \big/ \sum_{ij} e^{\alpha + X_{ij}^\top \beta}$ does not depend on $\alpha$
+        - $\alpha$ only affects the frequencies (either $N$ or equivalently any single field such as $N_{11}$), not the probabilities
+        - we often seek interpretation in terms of probabilities
+
+\begin{exampleblock}{}
+\textbf{Claim.} Since, a vector of independent Poissons given their sum is Multinomial, likelihoods based on 1. and 2. are equivalent w.r.t. $\beta$.
+\end{exampleblock}
+
+## Independence Model for Two-way Table
+
+* pseudo-contrast parametrization (no interaction)
+$$
+\log m_{ij}  = \alpha + \beta_i^Y + \beta_j^Z \quad\text{with}\quad \beta_1^Y=\beta_1^Z=0
+$$
+* how does the model matrix look like?
+* $\log m_{11} = \alpha$ $\Rightarrow$ $e^\alpha$ is the expected frequency of the first entry
+$$
+\begin{aligned}
+\pi_{ij} = m_{ij}/m_{++} &\;\Rightarrow\; \log \pi_{11} =\alpha - \log m_{++} \\&\;\Rightarrow\; \log \pi_{ij} = \log \pi_{11} + \beta_i^Y + \beta_j^Z
+\end{aligned}
+$$
+* $e^{\beta_i^Y} = \pi_{ij}/\pi_{1j} = P(Y=i,Z=j)/P(X=1,Z=j)$ for all $j$    
+$\Rightarrow$ $e^{\beta_i^Y}$ is odds of $Y=i$ against $Y=1$
+    - similarly $e^{\beta_j^Z}$ is odds of $Z=j$ against $Z=1$ (irrespective of $Y$)
+* clearly, $Y$ and $Z$ are independent
+    - it can be calculated that $\pi_{ij} = \pi_{i+} \pi_{+j}$ (equivalent to independence)
+    
+## Dependence Model for Two-way Table
+
+* pseudo-contrast again (with interaction this time)
+$$
+\log(m_{ij}) = \alpha + \beta_i^Y + \beta_j^Z + \textcolor{blue}{\beta_{ij}^{YZ}} \quad\text{with}\quad \beta_1^Y=\beta_1^Z=\beta_{i1}^{YZ}=\beta_{1j}^{YZ}=0
+$$
+* as before, $e^\alpha$ is the expected frequency of the first entry and
+$$
+\log \pi_{ij} = \log \pi_{11} + \beta_i^Y + \beta_j^Z + \textcolor{blue}{\beta_{ij}^{YZ}} \quad =: \Delta_{ij}
+$$
+* $e^{\beta_i^Y} = \pi_{i\textcolor{blue}{1}}/\pi_{1\textcolor{blue}{1}} = P(Y=i,\textcolor{blue}{Z=1})/P(X=1,\textcolor{blue}{Z=1})$    
+$\Rightarrow$ $e^{\beta_i^Y}$ is odds of $Y=i$ against $X=1$ given $Z=1$
+    - similarly $e^{\beta_j^Z}$ is odds of $Z=1 \mapsto Z=j \mid X=1$
+* to isolate $\textcolor{blue}{\beta_{ij}^{YZ}}$, one takes $\Delta_{ij}-\Delta_{1j}-\Delta_{i1}$ and obtains    
+$\Rightarrow$ $\textcolor{blue}{\beta_{ij}^{YZ}} = \frac{\pi_{ij}/\pi_{1j}}{\pi_{i1}/\pi_{11}}$ is the odds ratio
+    - how many times the odds of $Y=i$ against $Y=1$ change when $Z$ changes from $1$ to $j$
+    - or equivalently it is the change in odds of $Z=j$ against $Z=1$ for $Y=1 \mapsto Y=j$
+* clearly, $Y$ and $Z$ are dependent now
+
+## Test of Independence in a Two-way Table
+
+* in introductory statistics classes, two tests of independence for $2\times2$ tables are usually taught:
+    - Pearson $\chi^2$ test (asymptotic, ROT: $m_{ij} \geq 5$)
+    - Fisher factorial test (exact, applicable when expected frequencies are small)
+* many other tests (McNemmar, Cochran-Mantel-Haenszel) exist, some of them able to handle larger tables
+* **deviance test**: model-submodel test between the dependence and independence models above
+    - asymptotic (ROT: $m_{ij} \geq 3 (\vee 5)$)
+    - can be easily generalized to multi-way tables
+    - goodness of fit test 
+        - the larger model is saturated, i.e. it always holds
+        - in case of all regressors discrete, the saturated model can be consistently estimated
+        - the saturated model is rarely useful (what if the dependence is simply due to a confounder we missed? $X$ dependent on $Z$ and $X \independent Z \mid W$ for some $W$ do not exclude each other)
+        
+## Example: Wage & Race
+
+```{r}
+library(ISLR)
+data(Wage)
+# Wage$wage_cat<-as.factor(ifelse(Wage$wage>median(Wage$wage),"Above","Below"))
+mybreaks <- c(-Inf,quantile(Wage$wage)[c(-1,-5)],Inf)
+Wage <- Wage %>% mutate(wage_cat=cut(wage, mybreaks), race=fct_lump_min(race, 200, other_level="other"))
+levels(Wage$wage_cat) <- c("low","medium","high","extreme")
+levels(Wage$race) <- c("white","black","other")
+levels(Wage$education) <- c("basic","high-school","undergrad","graduate","advanced")
+```
+\footnotesize
+```{r,echo=T,fig.dim=c(4,4),out.width="40%"}
+tab1 <- table(Wage$wage_cat, Wage$race)
+tab1
+mosaicplot(tab1,main="wage~race")
+```
+
+## Example: Wage & Race
+
+\footnotesize
+```{r,echo=T}
+Data <- as.data.frame(tab1)
+names(Data) <- c("wage","race", "freq")
+gm1 <- glm(freq ~ wage+race, data=Data, family=poisson(link="log"))
+gm2 <- glm(freq ~ wage*race, data=Data, family=poisson(link="log"))
+anova(gm1,gm2,test="LRT")
+```
+
+\normalsize
+* `wage` and `race` are dependent, but could this be due to some other variables, e.g. `education`?
+
+## Three-way Tables
+
+* we now have 3 variables: $Y$,$Z$ and $W$
+    - assume we are interested mostly in $Y$ and $Z$ and their relationship, $W$ is just something we need to control for to get the relationship right
+* possible models (that depend on all the variables):
+    1. `freq~Y+W+Z`
+        - $Y \independent W \independent Z$
+    2. `freq~Y*W+Z` (or similarly `freq~Y+W*Z`)
+        - $(Y,W)^\top \independent Z$
+    3. `freq~Y*W+W*Z*`
+        - $Y$ and $Z$ dependent through $W$, but $Y\independent Z \mid W$
+    4. `freq~Y*W+W*Z+X*Z` (i.e. `freq~(.)^2` in short)
+        - $Y$ dependent on $Z$, even when conditioning on $W$, but the conditional relationship is the same regardless of the value of $W$
+    5. `freq~Y*W*Z` (i.e. `freq~(.)^3`)
+        - the saturated model
+    
+## Interpretation in Three-way Tables
+
+* pseudocontrast parametrization for the three-way interaction model:
+$$
+\log \pi_{ijk} = \log \pi_{111} + \beta_{i}^Y + \beta_{j}^Z + \beta_{k}^V + \beta_{ij}^{YZ} + \beta_{ik}^{YW} + \beta_{kj}^{WZ} + \beta_{ijk}^{YZW}
+$$
+with constraints: $\beta$'s with at least one index being 1 are zero
+* $e^{\beta_i^Y}$ is odds of $Y=i$ against $Y=1$
+    - irrespective of $Z$ and $W$ if there are no interactions
+    - for $Z=1$ if there is `Y:Z` interaction
+    - for $Z=1$ and $W=1$ if there are `Y:Z` and `Y:W` interactions
+* $e^{\beta_{ij}^{YZ}}$ is the odds ratio - how many times the odds of $Y=i$ against $Y=1$ change when $Z=1\mapsto j$
+    - irrespective of $W$ if the three-way interaction is not present
+    - given $W=1$ if the three-way interaction is present
+* $e^{\beta_{ijk}^{YZW}}$ is the ratio of conditional odds ratios
+    - a bit awkward interpretation
+    - if this interaction is present, it implies that conditional relationships between $Y$ and $Z$ depend on the value of the conditioning variable $W$
+* in the above, permute $(Y,Z,W)$ to obtain the remaining interpretations
+
+
+## Example: Wage, Education & Race
+
+```{r}
+data(Wage)
+# Wage$wage_cat<-as.factor(ifelse(Wage$wage>median(Wage$wage),"Above","Below"))
+mybreaks <- c(-Inf,quantile(Wage$wage)[c(-1,-5)],Inf)
+Wage <- Wage %>% mutate(wage_cat=cut(wage, mybreaks), race=fct_lump_min(race, 200, other_level="other"))
+levels(Wage$wage_cat) <- c("low","medium","high","extreme")
+levels(Wage$race) <- c("white","black","other")
+levels(Wage$education) <- c("basic","high-school","undergrad","graduate","advanced")
+```
+
+\footnotesize
+```{r,echo=T}
+tab2 <- table(Wage$education,Wage$wage_cat, Wage$race)
+Data <- as.data.frame(tab2)
+names(Data) <- c("education","income","race", "freq")
+gm1 <- glm(freq ~ (.)^2, data=Data, family=poisson(link="log"))
+gm2 <- glm(freq ~ (.)^3, data=Data, family=poisson(link="log"))
+anova(gm1,gm2,test="LRT")
+```
+
+\normalsize
+* go for the simpler model
+* can we simplify further, in particular to a model without `race*wage`?
+
+## Example: Wage, Education & Race
+
+\footnotesize
+```{r,echo=T}
+library(car)
+Anova(gm1,type=2)
+```
+
+\normalsize
+* we cannot simplify any further, `race` and `wage` are still dependent
+* the relationship between `race` and `wage` does not depend on `education`
+
+## Example: Wage, Education & Race
+
+`summary(gm1)` provides
+
+\footnotesize
+```
+Coefficients:
+                          Estimate Std. Err. z value Pr(>|z|) 
+incomemedium:raceblack     0.02067  0.15921   0.130  0.896708    
+incomehigh:raceblack      -0.41332  0.18091  -2.285  0.022331 *  
+incomeextreme:raceblack   -0.74089  0.21882  -3.386  0.000710 ***
+incomemedium:raceother    -0.54964  0.21585  -2.546  0.010883 *  
+incomehigh:raceother      -0.61067  0.21491  -2.841  0.004491 ** 
+incomeextreme:raceother   -0.42511  0.21219  -2.003  0.045133 *  
+```
+\normalsize
+showing that, for example:
+
+* the odds of `extreme` salary (against the `low` bottomline) are more than double for whites as opposed to blacks ($e^{-0.74} \approx 0.48$) with the same `education` (regardless of the `education` level)
+* the odds of `medium` salary (against the `low` bottomline) are about 2 % higher for blacks as opposed to whites ($e^{0.02} \approx 10.2$) again with the same `education` and regardless of the `education` level
+
+## Example: Wage, Education & Race
+
+Don't forget about stress-testing:
+
+* the model has some mild issues, it doesn't fit well low-education low-income whites and high-education high-income non-whites
+* otherwise all looks good
+* `sum(fitted(gm1)<5)` shows there are 8 (out of 60) table entries with fitted frequencies lower than 5, which is not negligible
+    - we could simulate from the fitted model (a.k.a. parametric bootstrap) to ascertain whether the residual deviance (30.298 on 24 df) is suspiciously high (it is not, so the model seems adequate)
+
+<!---   
+```{r,eval=F}
+deviances <- rep(0,1000)
+for(i in 1:1000){
+  set.seed(516*i)
+  if(i %% 10 ==0) print(i)
+  newDat <- Data
+  newDat$freq <- unlist(simulate(gm1))
+  bnull <- glm(freq~(.)^2, data=newDat, family="poisson")
+  deviances[i] <- bnull$deviance
+}
+hist(deviances)
+abline(v=gm1$deviance,col="red",lwd=2)
+```
+--->
+
+# Project 3
+
+## The Goal
+
+* home advantage is a real thing in football and other sports
+* during Covid, English Premier League (EPL) games played behind closed doors for 18 months
+    - for simplicity, let's say that fans weren't allowed into stadiums from March 12, 2020 until the beginning of the 2021-22 season
+
+**Question**: Did home advantage persist through Covid?
+
+* specifically, test whether the home advantage reduced during Covid
+* secondarily, quantify the home advantage before Covid and probe the development after Covid
+
+## Data
+
+Sub-folder `Premier_League` of folder `Data` contains match results for 4 EPL seasons:
+
+* 2018-2019 - pre-covid
+* 2019-2020 - pre-covid until March 12, 2020, then cancelled
+* 2020-2021 - in-covid
+* 2021-2022 - post-covid
+
+freely available online and googlable.
+
+## Tasks for You
+
+1. Load and tidy up the data
+    - combine the four `.csv` files into a single data frame
+    - variable names, etc.
+2. Wrangle your data frame into one that we can analyze by a log-linear model.
+    - every match should be coded twice, once from the home team perspective, once from the away team perspective, i.e. both scores from a single match would be the response
+3. Build a model and use it to answer the primary and the secondary question above.
+    - quantify the home advantage by interpreting the coefficient and providing an intepreted confidence interval
+4. Perform basic residual and stability analyses.
+    - w.r.t 2019-20 season
+    - w.r.t. a larger model
+    - promoted/relegated teams discarded?
+    - shouldn't we include a draw effect?
+
+<!---
+## Some more
+
+```{r,eval=F}
+library(GLMsData)
+data(nminer)
+names(nminer) <- tolower(names(nminer))
+mybreaks <- c(-Inf,17,25,Inf)+0.5
+nminertab <- nminer %>% mutate(eucs=cut(eucs, mybreaks)) %>% select(minerab,eucs) %>% group_by(eucs) %>% summarise(minerab=sum(minerab))
+plot(minerab ~ eucs, data=nminertab,ylim=c(0,max(minerab)))  
+
+  # mutate(minerab=aggregate(minerab, by=list(Category=eucs), FUN=sum))
+m2 <- glm(minerab ~ eucs, data=nminertab, family=poisson(lin="log"))
+summary(m2)
+1-pchisq(m2$deviance,df=m2$df.residual)
+```
+
+```{r,eval=F}
+data(nminer)
+names(nminer) <- tolower(names(nminer))
+mybreaks <- c(-Inf,17,25,Inf)+0.5
+nminertab <- nminer %>% mutate(eucs=cut(eucs, mybreaks)) %>% select(minerab,eucs,grazed,shrubs) %>%
+  group_by(eucs,grazed,shrubs) %>% summarise(minerab=sum(minerab))
+plot(minerab ~ eucs, data=nminertab,ylim=c(0,max(minerab)))  
+
+# mosaicplot(housing$Sat,housing$Cont)
+```
+
+--->

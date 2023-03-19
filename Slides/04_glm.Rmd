@@ -1,5 +1,5 @@
 ---
-title: "Week 4: Course Organization"
+title: "Week 4: Generalized Linear Models"
 subtitle: "MATH-516 Applied Statistics"
 author: "Tomas Masak"
 # date: "`r format(Sys.time(), '%b %d, %Y')`"
