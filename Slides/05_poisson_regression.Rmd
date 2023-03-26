@@ -31,7 +31,7 @@ library(tidyverse)
 $$
 \begin{aligned}
 f(x) &= \frac{\lambda^x}{x!} e^{-\lambda} \quad \text{for} \quad x \in \{0,1,2 \ldots\} \text{ and } \lambda \in (0,\infty) \\
-&= \exp\big( x \log \lambda + -\lambda + \log(1/x!)\big)
+&= \exp\big( x \log \lambda -\lambda + \log(1/x!)\big)
 \end{aligned}
 $$
 hence
@@ -39,7 +39,7 @@ hence
 * $\theta = \log \lambda$, $\varphi=1$, $b(\theta) = e^\theta$, and $c(x,\varphi) = \log(1/x!)$
 * $\mathrm{var}(Y) = \lambda$ and $\mu=\E X=\lambda$ $\Rightarrow$ $V(\mu) = \mu$
 * canonical link must satisfy $g(\mu) = \theta = \log \mu$
-    - i.e. $\mu_n = e^{X_n^\top \beta}$ this is why Poisson regression is sometimes called log-linear model
+    - i.e. $\mu_n = e^{X_n^\top \beta}$ this is why Poisson regression is sometimes referred to as the log-linear model
 
 ## Interpreting Parameters
 
@@ -75,7 +75,7 @@ gm1 <- glm(minerab ~ eucs, data=nminer, family=poisson(lin="log"))
 sum(residuals(gm1, type="pearson")^2)/(31-2) # indicates that the model is not great (should be close to 1), but that is hardly surprising given the plot
 plot(jitter(minerab) ~ eucs, data=nminer)
 abline(v=mybreaks, lty=2)
-x <- seq(0,30,length=100)
+x <- seq(0,35,length=100)
 points(x,exp(coef(gm1)[1] + x*coef(gm1)[2]),type="l")
 ```
 
@@ -144,7 +144,7 @@ points(x_plot,rep(coef(m2),each=2),type="l",col=3)
 
 \begin{center}
 \begin{tabular}{c|ccc|c}
-& $Y=1$ & $\cdots$ & $Z=J$ & $\sum$ \\
+& $Z=1$ & $\cdots$ & $Z=J$ & $\sum$ \\
 \hline
 $Y=1$ & $N_{11}$ & $\cdots$ & $N_{1J}$ & $N_{1+}$ \\
 $\vdots$ & $\vdots$ & $\ddots$ & $\vdots$ & $\vdots$ \\
@@ -155,7 +155,7 @@ $\sum$& $N_{+1}$ & $\cdots$ & $N_{+J}$ & $N_{++} \equiv N$ \\
 \end{center}
 
 * denote expected frequencies $m_{ij} = \E N_{ij}$
-    - and accordingly $m_{i+}$, $m_{+j}$ and $m_{++}=1$
+    - and accordingly $m_{i+}$, $m_{+j}$ and $m_{++}$
 * denote probabilities of observing $(i,j)$ by $\pi_{ij} = P(X=i,Z=j)$
     - and accordingly $\pi_{i+}$, $\pi_{+j}$ and $\pi_{++}=1$
 * if $(Y,Z) \independent N$, we have $m_{ij} = m_{++} \pi_{ij}$
@@ -223,7 +223,7 @@ $\Rightarrow$ $\textcolor{blue}{\beta_{ij}^{YZ}} = \frac{\pi_{ij}/\pi_{1j}}{\pi_
 * in introductory statistics classes, two tests of independence for $2\times2$ tables are usually taught:
     - Pearson $\chi^2$ test (asymptotic, ROT: $m_{ij} \geq 5$)
     - Fisher factorial test (exact, applicable when expected frequencies are small)
-* many other tests (McNemmar, Cochran-Mantel-Haenszel) exist, some of them able to handle larger tables
+* many other tests (McNemmar, Cochran-Mantel-Haenszel) exist, some of them able to handle multi-way tables
 * **deviance test**: model-submodel test between the dependence and independence models above
     - asymptotic (ROT: $m_{ij} \geq 3 (\vee 5)$)
     - can be easily generalized to multi-way tables
