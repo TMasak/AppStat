@@ -25,58 +25,6 @@ library(tidyverse)
 library(lubridate)
 ```
 
-# Uncertainty Quantification in GLMs
-
-## Confidence Interval
-
-* $\sqrt{N}(\widehat{\beta} - \beta) \to \mathcal{N}_p(0, I^{-1}(\theta))$ \hfill [Wald]
-
-    - the Fisher information matrix can be consistently estimated, then...
-    - easy to obtain CIs for any $\beta_j$
-    - easy to obtain CI for $c^\top \beta$ for any $c \in \R^p$
-    
-* $2[\ell(\widehat{\beta}) - \ell(\beta)] \to \chi^2_p$ \hfill [LR]
-
-    - invert numerically to obtain confidence region for the whole beta $\beta$
-    - similarly invert the model-submodel test to obtain confidence regions for some entries of $\beta$
-
-## Graph of GLM
-
-\begin{center}
-\includegraphics[width=0.6\textwidth]{../Plots/glm_structure.png}
-\end{center}
-
-* asymptotic Gaussianity for $\beta$ and hence for $\eta_n$
-    - on the linear predictor scale, things are roughly Gaussian
-* unless $g$ is identity (which makes sense only for the Gaussian linear model), no Gaussianity for the modelled mean $\mu_n$
-    - no Gaussianity on the response scale
-    
-## Prediction Interval
-
-* new observation $(Y_\star, X_\star)^\top$ with $Y_\star$ unknown
-* goal: construct interval $(L_{Y_\star},U_{Y_\star})$ depending on the fitted GLM and $X_\star$ such that $P\big(Y_\star \in (L_{Y_\star},U_{Y_\star})\big)=1-\alpha$
-* [Wald] provides $(L_{\eta_\star},U_{\eta_\star})$ such that $P(\eta_\star \in (L_{\eta_\star},U_{\eta_\star})) = 1-\alpha$
-* $\Rightarrow$ $P(\mu_\star \in (g^{-1}(L_{\eta_\star}),g^{-1}({\eta_\star}))) = 1-\alpha$
-* if $Y_\star$ is distributed according to a certain distribution, the prediction interval is given by quantiles of that distribution
-* $\Rightarrow$ run $(g^{-1}(L_{\eta_\star}),g^{-1}({\eta_\star}))$ through the quantile function (of the response distribution estimated by the GLM) and report the minimum and maximum value as the prediction interval $(L_{Y_\star},U_{Y_\star})$
-    - this is conservative, but it is not easy to do better because, unlike Gaussian linear models, other GLMs do not have distribution of the "error" independent of that of $\widehat{\eta}_n$
-    - replace this step by Monte Carlo?
-* prediction intervals are fairly useless for binary data (there CI for $\eta_\star$ is enough)
-    
-## Sources of Uncertainty in Prediction
-
-1. uncertainty in the model
-2. uncertainty in the model parameters
-3. uncertainty in the new observation
-
-* we try to remove source 1 by careful model building and diagnostics
-    - we act like if we have succeeded
-* sources 2 and 3 are independent for Gaussian linear model, but not for other GLMs
-    - and we don't know what the form of the dependence is, so we conservatively take the worst case
-* Monte Carlo simulation?
-     - often people simulate only from the fitted model (i.e. parametric bootstrap), but that ignores source 2 of uncertainty
-     - simulating for given $X_\star$ the whole $\beta \mapsto \eta_\star \mapsto \mu_{star} \mapsto \text{"new sample"}$ path by starting from the asymptotic distribution of $\beta$ is better for moderate/low sample sizes
-
 # Logistic vs. Log-linear Model
 
 ## Logistic vs. Log-linear Model
@@ -107,7 +55,7 @@ If $Y$ is binary, then there is a certain equivalence between logistic and log-l
 
 What the models predict:
 
-* Poisson (a.k.a. log-linear): how many goals will be scored is a given match
+* Poisson (a.k.a. log-linear): how many goals will be scored in a given match
 * binomial (a.k.a. logistic): was a given goal scored at home or away
 
 ## Example: Premier League Data
@@ -121,6 +69,61 @@ What the models predict:
     - the intercept provides the baseline (before covid) probability of a goal being scored at home
         - $e^{0.19} \approx 1.21$ is the odds of success (scoring at home) against failure (scoring away) before covid ... the only and arguably a bit weird interpretation
     - the `covid`-related coefs show how the probability of a goal being scored at home changes when we move into/past covid
+
+# Uncertainty Quantification in GLMs
+
+## Confidence Interval
+
+* $\sqrt{N}(\widehat{\beta} - \beta) \to \mathcal{N}_p(0, I^{-1}(\theta))$ \hfill [Wald]
+
+    - the Fisher information matrix can be consistently estimated, then...
+    - easy to obtain CIs for any $\beta_j$
+    - easy to obtain CI for $c^\top \beta$ for any $c \in \R^p$
+    
+* $2[\ell(\widehat{\beta}) - \ell(\beta)] \to \chi^2_p$ \hfill [LR]
+
+    - invert numerically to obtain confidence region for the whole beta $\beta$
+    - similarly invert the model-submodel test to obtain confidence regions for some entries of $\beta$
+    
+**Question:** How to build prediction intervals for GLMs?
+
+## Graph of GLM
+
+\begin{center}
+\includegraphics[width=0.6\textwidth]{../Plots/glm_structure.png}
+\end{center}
+
+* asymptotic Gaussianity for $\beta$ and hence for $\eta_n$
+    - on the linear predictor scale, things are roughly Gaussian
+* unless $g$ is identity (which makes sense only for the Gaussian linear model), no Gaussianity for the modelled mean $\mu_n$
+    - no Gaussianity on the response scale
+    
+## Prediction Interval
+
+* new observation $(Y_\star, X_\star)^\top$ with $Y_\star$ unknown
+* goal: construct interval $(L_{Y_\star},U_{Y_\star})$ depending on the fitted GLM and $X_\star$ such that $P\big(Y_\star \in (L_{Y_\star},U_{Y_\star})\big)=1-\alpha$
+* [Wald] provides $(L_{\eta_\star},U_{\eta_\star})$ such that $P(\eta_\star \in (L_{\eta_\star},U_{\eta_\star})) = 1-\alpha$
+* $\Rightarrow$ $P(\mu_\star \in (g^{-1}(L_{\eta_\star}),g^{-1}(U_{\eta_\star}))) = 1-\alpha$
+* if $Y_\star$ is distributed according to a certain distribution, the prediction interval is given by quantiles of that distribution
+* $\Rightarrow$ run $(g^{-1}(L_{\eta_\star}),g^{-1}(U_{\eta_\star}))$ through the quantile function (of the response distribution estimated by the GLM) and report the minimum and maximum value as the prediction interval $(L_{Y_\star},U_{Y_\star})$
+    - this is conservative, but it is not easy to do better because, unlike Gaussian linear models, other GLMs do not have distribution of the "error" independent of that of $\widehat{\eta}_n$
+        - also, we should take $1-\alpha/4$ quantiles for both distributions to apply Bonferroni correction
+    - replace this step by Monte Carlo?
+* prediction intervals are fairly useless for binary data, there CI for $\eta_\star$ or for $\mu_\star$ (obtained by the Delta method) is enough
+    
+## Sources of Uncertainty in Prediction
+
+1. uncertainty in the model
+2. uncertainty in the model parameters
+3. uncertainty in the new observation
+
+* we try to remove source 1 by careful model building and diagnostics
+    - we act like if we have succeeded
+* sources 2 and 3 are independent for Gaussian linear model, but not for other GLMs
+    - and we don't know what the form of the dependence is, so we conservatively take the worst case
+* Monte Carlo simulation?
+     - often people simulate only from the fitted model (i.e. parametric bootstrap), but that ignores source 2 of uncertainty
+     - simulating for given $X_\star$ the whole $\beta \mapsto \eta_\star \mapsto \mu_{star} \mapsto \text{"new sample"}$ path by starting from the asymptotic distribution of $\beta$ is better for moderate/low sample sizes
 
 # GLMs for Positive Response
 
@@ -141,9 +144,9 @@ There are three exemplary situations where a (Gaussian) linear model is inadequa
 
 ## Positive Response
 
-Several options for the response distribution:
+Several exponential family options for the response distribution:
 
-1. Gaussian modelled as a GLM with a log-link 
+1. Gaussian modelled as a GLM with a log-link
     - here the response can be technically negative
 2. log-normal
     - take a logarithm of the response and model it as Gaussian
