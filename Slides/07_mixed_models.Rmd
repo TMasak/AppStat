@@ -1,0 +1,443 @@
+---
+title: "Week 7: Mixed Models"
+subtitle: "MATH-516 Applied Statistics"
+author: "Tomas Masak"
+# date: "`r format(Sys.time(), '%b %d, %Y')`"
+date: "Feb 20th 2023"
+output: beamer_presentation
+classoption: "presentation"
+theme: "Madrid"
+colortheme: "seahorse"
+footer: "Copyright (c) 2023, EPFL"
+urlcolor: blue
+header-includes:
+  - \usepackage{bm}
+  - \newcommand{\E}{\mathbb{E}}
+  - \newcommand{\R}{\mathbb{R}}
+  - \newcommand{\argmin}{\mathrm{arg\,min\;}}
+  - \newcommand{\rank}{\mathrm{rank}}
+  - \newcommand\independent{\protect\mathpalette{\protect\independenT}{\perp}}\def\independenT#1#2{\mathrel{\rlap{$#1#2$}\mkern2mu{#1#2}}}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+library(tidyverse)
+```
+
+# Course Organization (Update)
+
+## Content
+
+* **Week 1**: Intro
+    - Project 1: Snow Data
+* Week 2: Linear Models - Practical Recap
+* **Week 3**: Logistic Regression
+    - Project 2: Online Shopping Data
+* Week 4: Generalized Linear Models
+* **Week 5**: Poisson Regression
+    - Project 3: Premier League Data
+* Week 6: more on GLMs
+* **Week 7**: Linear Mixed Models
+    - Project 4: U.S. Presidential Elections
+* Free Week: Easter Holidays
+* Week 8: Linear Mixed and Multilevel Models
+
+## Content (cont.)
+
+* **Week 9**: Time Series
+    - Project 5: Global Warming
+* Week 10: Time Series Regression
+* **Week 11**: Functional Data Analysis            
+    - Project 7: First Wave of Covid in the US      
+* Week 12: Functional PCA
+* **Week 13**: Statistical Consulting
+* Week 14: **Oral Exam**
+    - discussing your submitted projects
+    
+**Evaluation**: remains the same as announced on Week 1, with Statistical consulting replacing Project 7 (active participation + writing up a suggested solution to a presented problem). Work on Projects 6 and 7 can be combined (to be considered a single submission) and will not be examined.
+
+# Example: Tree Growth
+
+## Data
+
+* log-size (log-height+2log-diameter) of 79 (Sitka spruce) trees measured repeatedly in about 1-month intervals
+    - each tree measured 5-times
+    - 54 trees grown in ozone-enriched environment (`treat=1`) and 25 were control 
+
+```{r}
+library(MASS)
+data(Sitka)
+names(Sitka) <- tolower(names(Sitka))
+head(Sitka)
+```
+
+## Data Displayed
+
+```{r,fig.dim=c(6,6), out.width="49%",fig.align='center',fig.show='hold'}
+set.seed(517)
+jitnoise <- runif(max(Sitka$tree),-8,8)
+# Sitka %>% mutate(jittime=time+jitnoise[tree]) %>%
+#   ggplot() + geom_point(mapping=aes(x=jittime,y=size,col=tree),size=3) + scale_colour_viridis_c(option = "magma") +
+#   geom_text(aes(x=jittime,y=size,label=tree),size=2,col="cyan")
+
+Sitka %>% mutate(jittime=time+jitnoise[tree], tree=as.factor(tree)) %>%
+  ggplot(mapping=aes(x=jittime,y=size,col=tree)) + geom_point() #+ stat_smooth(method="lm",level=NA,size=0.5)
+
+Sitka %>% mutate(jittime=time+jitnoise[tree], tree=as.factor(tree)) %>%
+  ggplot(mapping=aes(x=jittime,y=size,col=tree)) + geom_point() + stat_smooth(method="lm",level=NA,size=0.5)
+
+Sitka <- Sitka %>% mutate(tree=as.factor(tree))
+```
+
+Right: individual line for every tree corresponding to model 
+```
+y ~ tree*time
+```
+
+## Models
+
+\footnotesize
+```{r,echo=T, eval=F}
+m1 <- lm(size~(time+I(time^2))*tree,data=Sitka)
+m0 <- lm(size~(time+I(time^2)), data=Sitka)
+anova(m0,m1)
+```
+
+```
+  Res.Df     RSS  Df Sum of Sq      F    Pr(>F)    
+1    391 157.107                                   
+2    237   6.267 154    150.84 37.043 < 2.2e-16 ***
+```
+
+\normalsize
+* `m0` allows for a separate curve for the two treatment groups
+* `m1` allows for a separate curve for every tree (so `m0` is a submodel of `m1`)
+
+Problems:
+
+* `m1` cannot be simplified to `m0`, but the effect of interest (`treat`) cannot be fitted without this simplification, because every single tree is either treatment or control
+    - also what if we had low number of observations for some trees and couldn't afford to fit `m1`?
+* but assumptions of `m0` are clearly violated
+
+## Diagnostics
+
+```{r,fig.dim=c(12,4), out.width="99%",fig.align='center'}
+m1 <- lm(size~(time+I(time^2))*tree,data=Sitka)
+m0 <- lm(size~(time+I(time^2)), data=Sitka)
+par(mfrow=c(1,3))
+N <- dim(Sitka)[1]
+p <- length(coef(m0))
+plot(m0,c(1,2,5),cook.levels=c(8/(N-2*p), 4/N))
+```
+```{r,fig.dim=c(16.5,5.5), out.width="99%",fig.align='center'}
+Sitka %>% ggplot(mapping=aes(y=resid(m0),col=tree), main="s") + geom_boxplot() + labs(caption="Figure: Residuals grouped by tree.") + theme(plot.caption = element_text(size=18))
+```
+
+# Linear Mixed Models
+
+## Definition
+
+* regressions with a large no. of coefficients some of which are themselves being modelled
+* extend the linear model
+$$
+Y = \mathbf X \beta + \epsilon, \quad \epsilon \sim \mathcal{N}_N(0, \sigma^2 \mathbf I_N)
+$$
+to the **linear mixed model**
+$$
+Y = \mathbf X \beta + \mathbf Z b + \epsilon, \quad b \sim \mathcal{N}_q(0, \mathbf C), \quad \epsilon \sim \mathcal{N}_n(0, \sigma^2 \mathbf I_n)
+$$
+    - $\mathbf X$ and $\mathbf Z$ are known design matrices
+    - $\beta \in \R^p$ are fixed (non-random) parameters (effects)
+    - $b \in \R^q$ are random effects with mean 0 and covariance matrix $\mathbf C$
+        - independent of $\epsilon$
+* parameters: $\beta$, $\mathbf C$ and $\sigma^2$
+
+## Fitting the Model (ML method)
+
+* the linear mixed model has its log-likelihood $\ell(\beta,\mathbf C, \sigma^2)$
+* if we knew $\mathbf C$, we could rewrite the model to
+$$
+Y = \mathbf X \beta + e, \quad e \sim \mathcal{N}_n(0, \sigma^2 \mathbf W), \quad \mathbf{W} = \mathbf I_n + \frac{1}{\sigma^2}\mathbf Z \mathbf C \mathbf Z^\top
+$$
+then the solution $\widehat{\beta}_\mathbf{C}$ and $\widehat{\sigma}^2_\mathbf{C}$ would be given explicitly by weighted least squares
+    - imagine a reparametrization "if we knew $\mathbf C/\sigma^2$" instead
+* consider the profile log-likelihood for $\mathbf C$: $\ell_p(\mathbf C) = \ell(\widehat{\beta}_\mathbf{C}, \mathbf C,\widehat{\sigma}^2_\mathbf{C})$
+
+**Algorithm**: starting from an initial $\mathbf{C}^{(0)}$ alternate until convergence for $l=1,2,\ldots$ between
+
+1. calculation of $\widehat{\beta}_{\mathbf{C}^{(l-1)}}$ and $\widehat{\sigma}^2_{\mathbf{C}^{(l-1)}}$ by weighted least squares
+2. updating $\mathbf{C}^{(l)} = \mathrm{arg\,min}_{\mathbf C} \ell_p(\mathbf C)$ by Newton's method (itself iterative)
+    - since Newton works well given good starting values, one rather runs EM algorithm for a while (treating $b$ as unobserved data) before switching to this scheme
+    
+## Fitting the Model (REML method)
+
+* start by integrating out $\beta$ from the log-likelihood
+    - it actually has a closed form and is equivalent to working with likelihood for $\mathbf A Y$ such that $\E \mathbf A Y = 0$, i.e. it is just a simple transformation of the problem
+* use iterative solver
+    - closed form for $\sigma^2$
+    - inner iteration for $\mathbf C$
+* finally obtain $\beta$ as with the ML method
+
+ML vs. REML:
+
+* REML is often preferred (and set as default) since it can lead to unbiased variance estimators (which ML never does)
+* but REML depends on parametrization of the fixed effects
+    - if one wants to compare models with different $\mathbf X$ using likelihood criteria, ML needs to be used!
+* ML and REML are asymptotically equivalent
+
+## Example: Tree Growth
+
+Rewrite the model in a form that shows the grouping:
+$$
+Y_k = \mathbf X_k \beta + \mathbf Z_k b_k + \epsilon, \quad b_k \sim \mathcal{N}_{q}(0, \mathbf C), \quad \epsilon_k \sim \mathcal{N}_{N_k}(0, \sigma^2 \mathbf I_{N_k})
+$$
+
+\vspace*{-4mm}
+* $b_i$ and $\epsilon_i$ are i.i.d. for $k=1,\ldots,K$
+* $\{b_i\}_{k=1,\ldots,K} \independent \{\epsilon_k\}_{k=1,\ldots,K}$
+
+Specifically, in the tree growth example `m1` can be replaced by:
+
+* $K$ is the no. of trees
+* $N_k=5$ (for all $k$) is the number of measurements per tree
+*
+$$
+Y_k=\begin{pmatrix} Y_{k1} \\ \vdots \\ Y_{k5} \end{pmatrix} \qquad \mathbf X_k=\begin{pmatrix} 1 & t_{k1} \\ \vdots & \vdots \\ 1 & t_{k5} \end{pmatrix} = \mathbf{Z}_k
+$$
+*
+$$
+\beta = \begin{pmatrix} \beta_{0} \\ \beta_{1} \\ \beta_2 \end{pmatrix} \qquad b_k = \begin{pmatrix} b_{k0} \\ b_{k1} \\ b_{k2} \end{pmatrix} \qquad \mathbf C = \begin{pmatrix} \sigma_0^2 & \sigma_{01} & \sigma_{02} \\ \sigma_{01} & \sigma_1^2 & \sigma_{12} \\ \sigma_{02} & \sigma_{12} & \sigma_2^2 \end{pmatrix}
+$$
+
+## Example & Predictors of Random Effects
+
+Fixed effect model: $\E[Y_{ki}\mid X_{ki}=t_{ki}] = \beta_{k0} + \beta_{k1} t_{k1} + \beta_{k2} t_{ki}^2$
+
+* or something similar depending on the parametrization of `tree`, e.g. with `contr.sum` it would be for all but the last tree:
+$$
+\E[Y_{ki}\mid X_{ki}=t_{ki}] = (\beta_{0} + \beta_{k0}) + (\beta_1 + \beta_{k1}) t_{ki}  + (\beta_2 + \beta_{k2}) t_{ki}^2
+$$
+
+Mixed effect model:
+$$
+\E[Y_{ki}\mid X_{ki}=t_{ki},b_k] = (\beta_{0} +b_{k0}) + (\beta_1 + b_{k1}) t_{ki}  + (\beta_2 + b_{k2}) t_{ki}^2
+$$
+
+* $\mathrm{cov}(Y_{ki},Y_{kj}) = \mathrm{cov}(b_{k0} + b_{k1} t_{ki} + b_{k2} t_{ki}^2, b_{k0} + b_{k1} t_{kj} + b_{k2} t_{kj}^2) \neq 0$
+
+In general (no need to read too much into the formula):
+$$
+\widehat{b}_k = \mathbf{C} \mathbf Z_k^\top ( \mathbf Z_k \mathbf C \mathbf Z_k^\top + \sigma^2 \mathbf I_{N_k})^{-1} (Y_k - \mathbf X_k^\top \widehat{\beta}) 
+$$
+
+\vspace*{-3mm}
+* called *predictors* since these are not parameters but random variables, but they are also sort of *shrinkage estimators*, because
+* vaguely: $\widehat{b}_{kl}$ is somewhere between 0 and the $\widehat{\beta}_{kl}$ in the `contr.sum` parametrization above
+
+## Example: Tree Growth
+
+\footnotesize
+Consider a simpler model, where only the intercept is random:
+$$
+\E[Y_{ki}\mid X_{ki}=t_{ki},b_k] = (\beta_0 + b_k) + \beta_{k1} t_{ki}
+$$
+and the corresponding fixed-effect-only model `y ~ tree+time`.
+
+```{r,fig.dim=c(8,6), fig.align='center',out.width="71%"}
+library(lme4)
+data(Sitka)
+names(Sitka) <- tolower(names(Sitka))
+Sitka <- Sitka %>% mutate(tree=as.factor(tree))
+mm1 <- lmer(size~time + (1|tree),data=Sitka,REML=F)
+m1 <- lm(size~time + tree,data=Sitka)
+Sitka %>% mutate(jittime=time+jitnoise[tree]) %>%
+  ggplot() + geom_point(mapping=aes(x=jittime,y=size,col=tree)) + 
+  geom_line(mapping=aes(x=jittime,y=fitted(mm1),col=tree)) +
+  geom_line(mapping=aes(x=jittime,y=fitted(m1),col=tree), linetype="dashed") +
+  labs(caption="Figure: Tree Growth data and lines by fixed-effect-only model (dashed) and random intercept model (solid).") + theme(plot.caption = element_text(size=11,hjust=0))
+# Random effects can be seen as shrinkage estimators of the fixed effects. Actually, if there is just a single random effect, it is exactly "partial" ridge regression ("partial" because the ridge penalty is applied only to some parameters - those that are considered random in the mixed model - and shrinkage is to the overall mean given by the fixed effect). Situation is similar with multiple random effects, but there things are more complicated due to the correlation between random effects, which ridge regression does not allow. It is still shrinkage, but w.r.t. inner product given by the covariance matrix C.
+```
+
+## Uncertainty Quantification
+
+Let $\theta \in \R^r$ denote the vector of parameters determining $\mathbf C$.
+
+\begin{exampleblock}{}
+\textbf{Theorem.} Under validity of the model above and the MLE regularity conditions, we have for $K \to \infty$:
+\begin{enumerate}
+\item estimators $\widehat{\beta}, \widehat{\theta}, \widehat{\sigma}^2$ are consistent,
+\smallskip\smallskip
+\item \raisebox{-7mm}{$\sqrt{K} \begin{pmatrix} \widehat{\beta} - \beta \\ \widehat{\theta} - \theta \\ \widehat{\sigma}^2 - \sigma^2 \end{pmatrix} \to \mathcal{N}_{p+r+1}(0, \mathbf J^{-1} )\,, \;\; \text{where} \;\;
+\mathbf J = \begin{pmatrix} \mathbf J_{\beta} & 0 & 0 \\ 0 & \mathbf J_{\theta} & \mathbf J_{\theta,\sigma^2} \\ 0 & \mathbf J_{\theta,\sigma^2} & \mathbf J_{\sigma^2} \end{pmatrix}$} \\
+\smallskip\smallskip
+is the Fisher information matrix,
+\item when $\widehat{\ell}$ denotes the maximized log-likelihood of the model and $\widehat{\ell}_0$ denotes the maximized log-likelihood of a submodel then 
+$$2[\widehat{\ell} - \widehat{\ell}_0] \to \chi^2_m\,,$$
+where $m$ is the difference in the no. of parameters between the model and the submodel.
+\end{enumerate}
+\end{exampleblock}
+
+## Testing for Model Components
+
+* testing fixed effects, i.e. $H_0: \beta_{p-m+1}=\ldots=\beta_p = 0$ against $H_1: \neg H_0$
+    - can be done via LRT due to point 3. of the previous theorem
+    - ML needs to be used instead of REML
+    - however, p-values tend to be too small, sometimes overstating importance of some effects
+* testing random effects, i.e. $H_0: \theta_{p-m+1}=\ldots=\theta_p = 0$
+    - usually cannot be done using the previous theorem, because MLE regularity assumptions are typically not met
+        - one of the components of $\theta$ is typically the variance for one of the components of $b_i$'s, which lies on the edge of the parameter space
+    - it can still be shown that the LR statistic still follows $\chi^2$-distribution, but with smaller degrees of freedom
+        - p-values of the test the LRT from point 3. of the previous theorem are too big, sometimes understating importance of some effects
+
+While solutions based on theory exist, a simpler road for us is the parametric bootstrap.
+
+## Example: Tree Growth
+
+\footnotesize
+```{r,echo=T}
+library(lme4)
+# standardize time, otherwise convergence issues
+Sitka <- Sitka %>% mutate(time=(time-mean(time))/sd(time))
+mm1 <- lmer(size~treat*(time+I(time^2)) + (time+I(time^2)|tree),
+            data=Sitka,REML=F)
+mm0 <- lmer(size~time+I(time^2) + (time+I(time^2)|tree),
+            data=Sitka,REML=F)
+anova(mm0,mm1)
+```
+
+* `REML=F` because the fixed-effect structure differs between the two models
+* treatment seems significant, but... let's do the bootstrap
+
+## Example: Tree Growth
+
+Bootstrap still rejects, although the p-value is doubled:
+
+\bigskip
+\footnotesize
+```{r,echo=T,eval=F}
+lrstat <- as.numeric(2*(logLik(mm1)-logLik(mm0)))
+lrstats <- rep(0,1000)
+for(i in 1:1000){
+  set.seed(517*i)
+  if(i %% 10 ==0) print(i)
+  newDat <- Sitka
+  newDat$size <- unlist(simulate(mm0))
+  bnull <- lmer(size~time+I(time^2) + (time+I(time^2)|tree),
+                data=newDat,REML=F)
+  balt <- lmer(size~treat*(time+I(time^2)) + (time+I(time^2)|tree),
+                data=newDat,REML=F)
+  lrstats[i] <- as.numeric(2*(logLik(balt)-logLik(bnull)))
+}
+mean(lrstats > lrstat)
+```
+```
+[1] 0.011
+```
+
+So we can finally conclude that ozone treatment matters :)
+
+## Diagnostics
+
+Similar to the standard linear model, with the additional
+
+* check of normality for the random effects
+
+\footnotesize
+```{r, echo=T, eval=F}
+plot(fitted(mm1),resid(mm1)) # the only thing `plot(mm1)` gives
+qqnorm(resid(mm1),main="") # a bit heavy tails
+plot(cooks.distance(mm1),type="h") # the old ROTs not useful here
+abline(h=3*mean(cooks.distance(mm1)),col="red",lty=2) # another ROT
+qqnorm(ranef(mm1)$tree[,1], main="QQ for Intercept")
+qqnorm(ranef(mm1)$tree[,2], main="QQ for Linear Term")
+qqnorm(ranef(mm1)$tree[,3], main="QQ for Quadratic Term")
+# this is only checking marginals; multivariate GoF tests are tricky
+```
+
+## Diagnostics
+
+```{r, fig.dim=c(4,4), out.width="32%", fig.show='hold'}
+plot(fitted(mm1),resid(mm1)) # the only thing `plot(mm1)` gives
+qqnorm(resid(mm1),main="") # a bit heavy tails
+plot(cooks.distance(mm1),type="h") # the old ROTs not useful here
+abline(h=3*mean(cooks.distance(mm1)),col="red",lty=2) # another ROT
+qqnorm(ranef(mm1)$tree[,1], main="QQ for Intercept")
+qqnorm(ranef(mm1)$tree[,2], main="QQ for Linear Term")
+qqnorm(ranef(mm1)$tree[,3], main="QQ for Quadratic Term")
+# this is only checking marginals; multivariate GoF tests are tricky
+```
+
+## `summary(mm1)`
+
+\footnotesize
+```
+Random effects:
+ Groups   Name        Variance Std.Dev. Corr       
+ tree     (Intercept) 0.356490 0.59707             
+          time        0.013509 0.11623   0.04      
+          I(time^2)   0.002593 0.05092   0.12 -0.71
+ Residual             0.008096 0.08998             
+Number of obs: 395, groups:  tree, 79
+
+Fixed effects:
+                      Estimate Std. Error t value
+(Intercept)           5.093296   0.120072  42.419
+treatozone           -0.201347   0.145231  -1.386
+time                  0.546397   0.024638  22.177
+I(time^2)            -0.108450   0.014041  -7.724
+treatozone:time      -0.079045   0.029800  -2.652
+treatozone:I(time^2) -0.009835   0.016984  -0.579
+```
+
+* the random quadratic term is very significant (LR test's p-value $10^{-8}$ even though understate), but of a low variance and high correlation ... problems
+
+# Multilevel Models
+
+## Grouping
+
+There can be more than one type of grouping:
+$$
+Y_{kl} = \mathbf X_{kl} \beta + \mathbf Z_{k,l}^{(1)} b_k + \mathbf Z_{l,k}^{(2)} b_{l} + \epsilon_{kl}
+$$
+
+\vspace{-3mm}
+* $Y_{kl} \ in \R^{N_{kl}}$ is the vector of individual observations belonging to
+    - $k$-th level of grouping (1)
+    - $l$-th level of grouping (2)
+* e.g. if in the tree growth example we needed to group not only by tree but also by time
+    - all $i$-th observations per tree could be correlated
+    - e.g. if a different person would measure tree size for different times $i$, but the same person for a single $i$
+    
+Or groupings can be nested:
+$$
+Y_{kl} = \mathbf X_{kl} \beta + \mathbf Z_{k,l} b_k + \mathbf Z_{kl} b_{kl} + \epsilon_{kl}
+$$
+
+\vspace{-3mm}
+* these are called multilevel models:
+    - $k=1,\ldots,K$ is the first-level grouping (e.g. school)
+    - $l=1,\ldots,L$ is the second-level grouping (e.g. class)
+    - $Y_{kl} \in \R^{N_{kl}}$ is the vector of individual observations (e.g. students)
+
+## `R` syntax (`lme4` package)
+
+```{r, out.width='99%', fig.align='center'}
+knitr::include_graphics('../Plots/mixed_model_structure.png')
+```
+
+\hfill\footnotesize \textcolor{gray}{source:} [link](http://bbolker.github.io/mixedmodels-misc/glmmFAQ.html#model-definition)
+
+## GLMMs
+
+* the linear mixed model generalizes to the GLMM in the same way that the standard linear model generalizes to the GLM
+* GLMMs are not as useful, because $\beta$'s can only be interpreted as the population-average effects if the link $g$ is linear:
+$$
+\E[Y_n\mid X_n] = \E g^{-1}(X_n^\top \beta + Z_n \top b_n)
+$$
+    - cannot go inside $g^{-1}$ with the expectation unless it is linear, i.e. cannot get rid of $b_n$ unless $g^{-1}$ is linear
+* only Gaussian models have the linear link as the canonical link
+* if one does not use a canonical link, issues may arise 
+    - numerical convergence issues
+    - calculated estimators are not guaranteed to be MLEs $\Rightarrow$ theory does not work, etc.
+
+# Project 4
