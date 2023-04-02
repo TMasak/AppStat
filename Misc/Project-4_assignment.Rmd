@@ -1,0 +1,81 @@
+---
+title: "Project 4: U.S. Presidential Elections"
+output:
+  html_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Data Description
+
+Data on U.S. Presidential elections between 1948 and 1992. We are interested in the two-party vote, i.e. we are disregarding any other candidate than the Democratic and the Republican in a given year. The data are already largely pre-processed with many derived variables.
+
+The variables are
+
+* `Dvote` - the outcome variable, the Democratic party candidate's share of the vote in the given state and year
+* `year`
+* `state`
+* `evotes` - number of electors in a given state and year
+    - In the U.S. Presidential elections, formally speaking, candidates are not voted directly by citizens. Instead, the popular vote in a state determines which (set of) *electors* get to jump on the horseback and ride to D.C. in order to cast their votes for the candidate, who won the popular vote in their respective state. There are historical reasons for this, but today it mostly serves as a way to weigh in different importance of a state (California basically counts for more than 14 of the smallest states).
+* `constant` - a manually created intercept
+* nationwide variables `n1,...,n4`
+    1. support for the Democratic candidate in the September poll
+    2. (presidential approval in the Jully poll) $\times$ `Inc`
+    3. (presidential approval in the Jully poll) $\times$ `Presinc`
+    4. (2nd quarter GNP growth) $\times$ `Inc`
+* statewide variables `s1,...,s9`
+    1. Democratic share of state vote in the last election (as a deviation from the corresponding national vote)
+    2. Democratic share of state vote two elections ago (again, as a deviation from national)
+    3. home state of the presidential candidate
+    4. home state of the vice-presidential candidate
+    5. Democratic majority in the state legislature
+    6. (state economic growth in the past year) $\times$ `Inc`
+    7. measure of the state ideology
+    8. ideological compatibility with candidates
+    9. proportion of Catholics in 1960 compared to U.S. average (1960 had a Catholic presidential candidate)
+* regional/sub-regional variables `r1,...,r6`
+    1. South indicator
+    2. (South indicator in 1964) $\times$ (-1)
+    3. (deep South indicator in 1964) $\times$ (-1)
+    4. New England indicator in 1964
+    5. New England indicator in 1972
+    6. (West in 1976) $\times$
+
+where `Inc` is 1 or -1 depending on whether the incumbent President is a Democrat or Republican, `Presinc` equals `Inc` if the incumbent President is running for a re-election and is 0 otherwise. All variables are positively signed towards Democrats, so e.g. `s3` is 1 for the home state of the Democratic cadidate and -1 for the home state of the Republican candidate. The year 1964 was strange because the Democratic candidate Lyndon B. Johson was able to completely dominate the elections also in the South, with the exception of the "deep South" states. There are other regional variables to adjust for known and expected outliers instead of removing them.
+
+The states are coded in the alphabetical order ([see here](https://en.wikipedia.org/wiki/U.S._state)). For political analyses, the U.S. is typically divided into 4 regions: Northeast, South, Midwest, and West. The regions include the
+following states (however, no one says that this division must be the best for the analysis):
+
+* Northeast:  7  8 19 20 21 29 30 32 38 39 45 48
+* South:  1  4  9 10 17 18 24 33 36 40 42 43 46
+* Midwest:  13 14 15 16 22 23 25 27 34 35 41 49
+* West:  2  3  5  6 11 12 26 28 31 37 44 47 50
+
+*Note from the authors who pre-processed the data*: The value of the regional variable `r1` ('South') is 0 in non-Southern
+states.  In Southern states, r1 = D - R, where D=1 if the Democratic
+candidate for President is a Southerner, and R=1 if the Republican
+candidate for President is a Southerner.  We set D=1 in 1964, 1976,
+1980, 1992; and R=1 in 1964.  For the purposes of this variable (and
+also the variable r2, ('South in 1964'), Southern states are AL, AR,
+FL, GA, LA, MS, NC, SC, TN, TX, VA (but not KY or OK).
+
+It would be cool to play with similar data, only up to date, but I don't know how to obtain and pre-process such data.
+
+## Tasks for Students
+
+1. Get familiar with the data. If needed, do some background research about the U.S. system in order to understand the variables.
+2. Explore the data. Are there any problems with the variables?
+    - create a region variable and add it into the data frame
+    - optionally, wrangle the data to repair mistakes, if you can spot any
+3. Fit a preliminary regression model to the data.
+    - do not use `region` at first
+    - Which variables should be excluded because they do not have a meaningful interpretation?
+    - Looking at the residuals from the linear model fit, should we allow for dependence in some groups? Try to motivate using a mixed model.
+4. Move to mixed models.
+    - allow for two levels of grouping: allow observations for the same year to be correlated, and observation within the same year and the same region to be correlated even further
+    - try to simplify the model - in particular, the regional/sub-regional variables somewhat overlap with `region`, can you discard one of the two? Can you discard (a part of) the random effect structure?
+    - provide interpretation of couple of most important parameters of your final model.
+

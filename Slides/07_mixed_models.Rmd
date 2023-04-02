@@ -54,7 +54,98 @@ library(tidyverse)
 * Week 14: **Oral Exam**
     - discussing your submitted projects
     
-**Evaluation**: remains the same as announced on Week 1, with Statistical consulting replacing Project 7 (active participation + writing up a suggested solution to a presented problem). Work on Projects 6 and 7 can be combined (to be considered a single submission) and will not be examined.
+**Evaluation**: remains the same as announced on Week 1, with Statistical Consulting replacing Project 7 (active participation + writing up a suggested solution to a presented problem). Work on Projects 6 and 7 can be combined (to be considered a single submission) and will not be examined.
+
+# Project 3: Premier League
+
+## Data Visualized
+
+```{r}
+library(tidyverse)
+library(lubridate)
+Data1 <- read.csv("../Data/Premier_League/season-1819.csv", header=T)
+Data1 <- Data1 %>% mutate(Date=dmy(Date)) %>% mutate(year=year(Date), month=month(Date), day=day(Date)) %>%
+  rename(date=Date, team_home=HomeTeam, team_away=AwayTeam, score_home=FTHG, score_away=FTAG) %>%
+  select(date, year, month, day, team_home,team_away,score_home,score_away) %>%
+  mutate(team_home = as.factor(team_home), team_away = as.factor(team_away), covid=0)
+Data2 <- read.csv("../Data/Premier_League/2019-20.csv", header=T)
+Data2 <- Data2 %>% mutate(Date=dmy(Date)) %>% mutate(year=year(Date), month=month(Date), day=day(Date)) %>%
+  rename(date=Date, team_home=HomeTeam, team_away=AwayTeam, score_home=FTHG, score_away=FTAG) %>%
+  select(date, year, month, day, team_home,team_away,score_home,score_away) %>%
+  mutate(team_home = as.factor(team_home), team_away = as.factor(team_away), covid=0)
+Data3 <- read.csv("../Data/Premier_League/2020-2021.csv", header=T)
+Data3 <- Data3 %>% mutate(Date=dmy(Date)) %>% mutate(year=year(Date), month=month(Date), day=day(Date)) %>%
+  rename(date=Date, team_home=HomeTeam, team_away=AwayTeam, score_home=FTHG, score_away=FTAG) %>%
+  select(date, year, month, day, team_home,team_away,score_home,score_away) %>%
+  mutate(team_home = as.factor(team_home), team_away = as.factor(team_away), covid=1)
+Data4 <- read.csv("../Data/Premier_League/2021-2022.csv", header=T)
+Data4 <- Data4 %>% mutate(Date=dmy(Date)) %>% mutate(year=year(Date), month=month(Date), day=day(Date)) %>%
+  rename(date=Date, team_home=HomeTeam, team_away=AwayTeam, score_home=FTHG, score_away=FTAG) %>%
+  select(date, year, month, day, team_home,team_away,score_home,score_away) %>%
+  mutate(team_home = as.factor(team_home), team_away = as.factor(team_away), covid=2)
+
+Data <- rbind(Data1,Data2,Data3,Data4)
+
+Dataflip <- Data %>% mutate(pom_team=team_home, pom_score=score_home, team_home=team_away, team_away=pom_team, score_home=score_away, score_away=pom_score) %>% select(-pom_team,-pom_score)
+# Data2 <- Data %>% mutate(score_home=score_away)
+Data <- rbind(Data,Dataflip)
+Data <- Data %>% mutate(score = score_home, home_flag = c(rep(1,dim(Dataflip)[1]),rep(0,dim(Dataflip)[1]))) %>%
+  select(-score_home,-score_away) %>% rename(offense=team_home, defense=team_away) %>%
+  mutate(covid=as.factor(covid))
+
+Data %>% mutate(defense=as.numeric(defense), offense=as.numeric(offense)) %>%
+  select(covid, score, home_flag, defense, offense) %>% mutate(covid=as.numeric(covid)) %>%
+  pivot_longer(everything()) %>%
+  ggplot(aes(value)) + facet_wrap(~ name, scales = "free") + geom_histogram()
+```
+
+## Balanced Data
+
+\footnotesize
+```{r}
+subDat <- Data %>%
+  filter(date < "2019-07-01" | date > "2020-07-01") %>%
+  filter(offense %in% names(table(offense)[table(offense) > 100]), defense %in% names(table(defense)[table(defense) > 100]))
+
+subDat %>% mutate(defense=as.numeric(defense), offense=as.numeric(offense)) %>%
+  select(covid, score, home_flag, defense, offense) %>% mutate(covid=as.numeric(covid)) %>%
+  pivot_longer(everything()) %>%
+  ggplot(aes(value)) + facet_wrap(~ name, scales = "free") + geom_histogram()
+```
+
+## Models (Balanced Data)
+
+\tiny
+```{r, echo=T}
+m <- glm(score~covid*home_flag+defense+offense, data=subDat, family="poisson")
+msub <- glm(score~home_flag+defense+offense, data=subDat, family="poisson")
+anova(m,msub,test="LRT")
+```
+
+## Models (Full Data)
+
+\tiny
+```{r, echo=T}
+m <- glm(score~covid*(home_flag+defense+offense), data=Data, family="poisson")
+msub <- glm(score~home_flag+defense+offense, data=Data, family="poisson")
+anova(m,msub,test="LRT")
+library(car)
+Anova(m,type=2)
+```
+
+## Models (Full Data)
+
+\tiny
+```{r, echo=T}
+minter <- glm(score~covid*(home_flag+defense)+offense, data=Data, family="poisson")
+msub <- glm(score~home_flag+covid*defense+offense, data=Data, family="poisson")
+anova(m,msub,test="LRT")
+anova(minter,msub,test="LRT")
+sum(is.na(coefficients(m)))
+```
+
+\footnotesize
+* we are on the edge of significance with a model that has too few observations to rely on asymptotics and to estimate all the parameters
 
 # Example: Tree Growth
 
@@ -166,7 +257,7 @@ then the solution $\widehat{\beta}_\mathbf{C}$ and $\widehat{\sigma}^2_\mathbf{C
 **Algorithm**: starting from an initial $\mathbf{C}^{(0)}$ alternate until convergence for $l=1,2,\ldots$ between
 
 1. calculation of $\widehat{\beta}_{\mathbf{C}^{(l-1)}}$ and $\widehat{\sigma}^2_{\mathbf{C}^{(l-1)}}$ by weighted least squares
-2. updating $\mathbf{C}^{(l)} = \mathrm{arg\,min}_{\mathbf C} \ell_p(\mathbf C)$ by Newton's method (itself iterative)
+2. updating $\mathbf{C}^{(l)} = \mathrm{arg\,min}_{\mathbf C}\; \ell_p(\mathbf C)$ by Newton's method (itself iterative)
     - since Newton works well given good starting values, one rather runs EM algorithm for a while (treating $b$ as unobserved data) before switching to this scheme
     
 ## Fitting the Model (REML method)
@@ -202,7 +293,7 @@ Specifically, in the tree growth example `m1` can be replaced by:
 * $N_k=5$ (for all $k$) is the number of measurements per tree
 *
 $$
-Y_k=\begin{pmatrix} Y_{k1} \\ \vdots \\ Y_{k5} \end{pmatrix} \qquad \mathbf X_k=\begin{pmatrix} 1 & t_{k1} \\ \vdots & \vdots \\ 1 & t_{k5} \end{pmatrix} = \mathbf{Z}_k
+Y_k=\begin{pmatrix} Y_{k1} \\ \vdots \\ Y_{k5} \end{pmatrix} \qquad \mathbf X_k=\begin{pmatrix} 1 & t_{k1} & t_{k1}^2 \\ \vdots & \vdots \\ 1 & t_{k5} & t_{k5}^2 \end{pmatrix} = \mathbf{Z}_k
 $$
 *
 $$
@@ -286,7 +377,7 @@ where $m$ is the difference in the no. of parameters between the model and the s
 * testing random effects, i.e. $H_0: \theta_{p-m+1}=\ldots=\theta_p = 0$
     - usually cannot be done using the previous theorem, because MLE regularity assumptions are typically not met
         - one of the components of $\theta$ is typically the variance for one of the components of $b_i$'s, which lies on the edge of the parameter space
-    - it can still be shown that the LR statistic still follows $\chi^2$-distribution, but with smaller degrees of freedom
+    - it can still be shown that the LR statistic still follows $\chi^2$-distribution, but with a smaller no. of degrees of freedom
         - p-values of the test the LRT from point 3. of the previous theorem are too big, sometimes understating importance of some effects
 
 While solutions based on theory exist, a simpler road for us is the parametric bootstrap.
@@ -441,3 +532,27 @@ $$
     - calculated estimators are not guaranteed to be MLEs $\Rightarrow$ theory does not work, etc.
 
 # Project 4
+
+## Data
+
+* data on U.S. Presidential elections between 1948 and 1992
+* two-party vote, i.e. any other candidate than the Democratic and the Republican parties disregarded
+* the data are already heavily pre-processed with many derived variables
+    - details below
+    - cotains polls, etc.
+    
+In the 90s, there was a general belief that U.S. presidential elections are easy to understand using linear models and the kind of data we have.
+
+**Goal of the project**: Endorse or refute the general belief by:
+
+* start by exploring the data and building a linear model
+* consider whether observations in a given a year and/or in a given region within year are correlated
+* motivate using mixed models and build one
+
+More detailed description of data and tasks can be found in `./Misc/Projec-4_assignment`.
+
+
+
+
+
+
