@@ -40,7 +40,7 @@ library(tidyverse)
 * **Week 7**: Linear Mixed Models
     - Project 4: U.S. Presidential Elections
 * Free Week: Easter Holidays
-* Week 8: Linear Mixed and Multilevel Models
+* Week 8: Leftovers
 
 ## Content (cont.)
 
@@ -54,98 +54,7 @@ library(tidyverse)
 * Week 14: **Oral Exam**
     - discussing your submitted projects
     
-**Evaluation**: remains the same as announced on Week 1, with Statistical Consulting replacing Project 7 (active participation + writing up a suggested solution to a presented problem). Work on Projects 6 and 7 can be combined (to be considered a single submission) and will not be examined.
-
-# Project 3: Premier League
-
-## Data Visualized
-
-```{r}
-library(tidyverse)
-library(lubridate)
-Data1 <- read.csv("../Data/Premier_League/season-1819.csv", header=T)
-Data1 <- Data1 %>% mutate(Date=dmy(Date)) %>% mutate(year=year(Date), month=month(Date), day=day(Date)) %>%
-  rename(date=Date, team_home=HomeTeam, team_away=AwayTeam, score_home=FTHG, score_away=FTAG) %>%
-  select(date, year, month, day, team_home,team_away,score_home,score_away) %>%
-  mutate(team_home = as.factor(team_home), team_away = as.factor(team_away), covid=0)
-Data2 <- read.csv("../Data/Premier_League/2019-20.csv", header=T)
-Data2 <- Data2 %>% mutate(Date=dmy(Date)) %>% mutate(year=year(Date), month=month(Date), day=day(Date)) %>%
-  rename(date=Date, team_home=HomeTeam, team_away=AwayTeam, score_home=FTHG, score_away=FTAG) %>%
-  select(date, year, month, day, team_home,team_away,score_home,score_away) %>%
-  mutate(team_home = as.factor(team_home), team_away = as.factor(team_away), covid=0)
-Data3 <- read.csv("../Data/Premier_League/2020-2021.csv", header=T)
-Data3 <- Data3 %>% mutate(Date=dmy(Date)) %>% mutate(year=year(Date), month=month(Date), day=day(Date)) %>%
-  rename(date=Date, team_home=HomeTeam, team_away=AwayTeam, score_home=FTHG, score_away=FTAG) %>%
-  select(date, year, month, day, team_home,team_away,score_home,score_away) %>%
-  mutate(team_home = as.factor(team_home), team_away = as.factor(team_away), covid=1)
-Data4 <- read.csv("../Data/Premier_League/2021-2022.csv", header=T)
-Data4 <- Data4 %>% mutate(Date=dmy(Date)) %>% mutate(year=year(Date), month=month(Date), day=day(Date)) %>%
-  rename(date=Date, team_home=HomeTeam, team_away=AwayTeam, score_home=FTHG, score_away=FTAG) %>%
-  select(date, year, month, day, team_home,team_away,score_home,score_away) %>%
-  mutate(team_home = as.factor(team_home), team_away = as.factor(team_away), covid=2)
-
-Data <- rbind(Data1,Data2,Data3,Data4)
-
-Dataflip <- Data %>% mutate(pom_team=team_home, pom_score=score_home, team_home=team_away, team_away=pom_team, score_home=score_away, score_away=pom_score) %>% select(-pom_team,-pom_score)
-# Data2 <- Data %>% mutate(score_home=score_away)
-Data <- rbind(Data,Dataflip)
-Data <- Data %>% mutate(score = score_home, home_flag = c(rep(1,dim(Dataflip)[1]),rep(0,dim(Dataflip)[1]))) %>%
-  select(-score_home,-score_away) %>% rename(offense=team_home, defense=team_away) %>%
-  mutate(covid=as.factor(covid))
-
-Data %>% mutate(defense=as.numeric(defense), offense=as.numeric(offense)) %>%
-  select(covid, score, home_flag, defense, offense) %>% mutate(covid=as.numeric(covid)) %>%
-  pivot_longer(everything()) %>%
-  ggplot(aes(value)) + facet_wrap(~ name, scales = "free") + geom_histogram()
-```
-
-## Balanced Data
-
-\footnotesize
-```{r}
-subDat <- Data %>%
-  filter(date < "2019-07-01" | date > "2020-07-01") %>%
-  filter(offense %in% names(table(offense)[table(offense) > 100]), defense %in% names(table(defense)[table(defense) > 100]))
-
-subDat %>% mutate(defense=as.numeric(defense), offense=as.numeric(offense)) %>%
-  select(covid, score, home_flag, defense, offense) %>% mutate(covid=as.numeric(covid)) %>%
-  pivot_longer(everything()) %>%
-  ggplot(aes(value)) + facet_wrap(~ name, scales = "free") + geom_histogram()
-```
-
-## Models (Balanced Data)
-
-\tiny
-```{r, echo=T}
-m <- glm(score~covid*home_flag+defense+offense, data=subDat, family="poisson")
-msub <- glm(score~home_flag+defense+offense, data=subDat, family="poisson")
-anova(m,msub,test="LRT")
-```
-
-## Models (Full Data)
-
-\tiny
-```{r, echo=T}
-m <- glm(score~covid*(home_flag+defense+offense), data=Data, family="poisson")
-msub <- glm(score~home_flag+defense+offense, data=Data, family="poisson")
-anova(m,msub,test="LRT")
-library(car)
-Anova(m,type=2)
-```
-
-## Models (Full Data)
-
-\tiny
-```{r, echo=T}
-minter <- glm(score~covid*(home_flag+defense)+offense, data=Data, family="poisson")
-msub <- glm(score~home_flag+covid*defense+offense, data=Data, family="poisson")
-anova(m,msub,test="LRT")
-anova(minter,msub,test="LRT")
-sum(is.na(coefficients(m)))
-```
-
-\footnotesize
-* we are on the edge of significance with a model that has too few observations to rely on asymptotics and to estimate all the parameters
+**Evaluation**: remains the same as announced on Week 1, with Statistical Consulting replacing Project 7 (active participation + writing up a suggested solution to a presented problem). Work on Projects 6 and 7 can be combined (to be considered a single submission) and will not be examined in that case.
 
 # Example: Tree Growth
 
@@ -190,7 +99,7 @@ y ~ tree*time
 \footnotesize
 ```{r,echo=T, eval=F}
 m1 <- lm(size~(time+I(time^2))*tree,data=Sitka)
-m0 <- lm(size~(time+I(time^2)), data=Sitka)
+m0 <- lm(size~(time+I(time^2))*treat, data=Sitka)
 anova(m0,m1)
 ```
 
@@ -210,7 +119,7 @@ Problems:
     - also what if we had low number of observations for some trees and couldn't afford to fit `m1`?
 * but assumptions of `m0` are clearly violated
 
-## Diagnostics
+## Diagnostics for `m0`
 
 ```{r,fig.dim=c(12,4), out.width="99%",fig.align='center'}
 m1 <- lm(size~(time+I(time^2))*tree,data=Sitka)
@@ -228,7 +137,7 @@ Sitka %>% ggplot(mapping=aes(y=resid(m0),col=tree), main="s") + geom_boxplot() +
 
 ## Definition
 
-* regressions with a large no. of coefficients some of which are themselves being modelled
+* regressions with a large no. of coefficients some of which are themselves being modelled as random
 * extend the linear model
 $$
 Y = \mathbf X \beta + \epsilon, \quad \epsilon \sim \mathcal{N}_N(0, \sigma^2 \mathbf I_N)
@@ -287,7 +196,7 @@ $$
 * $b_i$ and $\epsilon_i$ are i.i.d. for $k=1,\ldots,K$
 * $\{b_i\}_{k=1,\ldots,K} \independent \{\epsilon_k\}_{k=1,\ldots,K}$
 
-Specifically, in the tree growth example `m1` can be replaced by:
+Specifically, in the tree growth example, `m1` can be replaced by:
 
 * $K$ is the no. of trees
 * $N_k=5$ (for all $k$) is the number of measurements per tree
@@ -318,7 +227,7 @@ $$
 
 In general (no need to read too much into the formula):
 $$
-\widehat{b}_k = \mathbf{C} \mathbf Z_k^\top ( \mathbf Z_k \mathbf C \mathbf Z_k^\top + \sigma^2 \mathbf I_{N_k})^{-1} (Y_k - \mathbf X_k^\top \widehat{\beta}) 
+\widehat{b}_k = \mathbf{C} \mathbf Z_k^\top ( \mathbf Z_k \mathbf C \mathbf Z_k^\top + \widehat \sigma^2 \mathbf I_{N_k})^{-1} (Y_k - \mathbf X_k^\top \widehat{\beta}) 
 $$
 
 \vspace*{-3mm}
@@ -497,7 +406,7 @@ $$
     - $l$-th level of grouping (2)
 * e.g. if in the tree growth example we needed to group not only by tree but also by time
     - all $i$-th observations per tree could be correlated
-    - e.g. if a different person would measure tree size for different times $i$, but the same person for a single $i$
+    - e.g. if a different person would measure tree size for different times $i$, but the same person for a single $i$ (stupid example)
     
 Or groupings can be nested:
 $$
@@ -549,7 +458,7 @@ In the 90s, there was a general belief that U.S. presidential elections are easy
 * consider whether observations in a given a year and/or in a given region within year are correlated
 * motivate using mixed models and build one
 
-More detailed description of data and tasks can be found in `./Misc/Projec-4_assignment`.
+More detailed description of data and tasks can be found in `./Misc/Projec-4_assignment`
 
 
 

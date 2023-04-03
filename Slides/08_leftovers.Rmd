@@ -1,0 +1,129 @@
+---
+title: "Week 7: Mixed Models"
+subtitle: "MATH-516 Applied Statistics"
+author: "Tomas Masak"
+# date: "`r format(Sys.time(), '%b %d, %Y')`"
+date: "Feb 20th 2023"
+output: beamer_presentation
+classoption: "presentation"
+theme: "Madrid"
+colortheme: "seahorse"
+footer: "Copyright (c) 2023, EPFL"
+urlcolor: blue
+header-includes:
+  - \usepackage{bm}
+  - \newcommand{\E}{\mathbb{E}}
+  - \newcommand{\R}{\mathbb{R}}
+  - \newcommand{\argmin}{\mathrm{arg\,min\;}}
+  - \newcommand{\rank}{\mathrm{rank}}
+  - \newcommand\independent{\protect\mathpalette{\protect\independenT}{\perp}}\def\independenT#1#2{\mathrel{\rlap{$#1#2$}\mkern2mu{#1#2}}}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+library(tidyverse)
+```
+
+# Project 3: Premier League
+
+## Data Visualized
+
+```{r}
+library(tidyverse)
+library(lubridate)
+Data1 <- read.csv("../Data/Premier_League/season-1819.csv", header=T)
+Data1 <- Data1 %>% mutate(Date=dmy(Date)) %>% mutate(year=year(Date), month=month(Date), day=day(Date)) %>%
+  rename(date=Date, team_home=HomeTeam, team_away=AwayTeam, score_home=FTHG, score_away=FTAG) %>%
+  select(date, year, month, day, team_home,team_away,score_home,score_away) %>%
+  mutate(team_home = as.factor(team_home), team_away = as.factor(team_away), covid=0)
+Data2 <- read.csv("../Data/Premier_League/2019-20.csv", header=T)
+Data2 <- Data2 %>% mutate(Date=dmy(Date)) %>% mutate(year=year(Date), month=month(Date), day=day(Date)) %>%
+  rename(date=Date, team_home=HomeTeam, team_away=AwayTeam, score_home=FTHG, score_away=FTAG) %>%
+  select(date, year, month, day, team_home,team_away,score_home,score_away) %>%
+  mutate(team_home = as.factor(team_home), team_away = as.factor(team_away), covid=0)
+Data3 <- read.csv("../Data/Premier_League/2020-2021.csv", header=T)
+Data3 <- Data3 %>% mutate(Date=dmy(Date)) %>% mutate(year=year(Date), month=month(Date), day=day(Date)) %>%
+  rename(date=Date, team_home=HomeTeam, team_away=AwayTeam, score_home=FTHG, score_away=FTAG) %>%
+  select(date, year, month, day, team_home,team_away,score_home,score_away) %>%
+  mutate(team_home = as.factor(team_home), team_away = as.factor(team_away), covid=1)
+Data4 <- read.csv("../Data/Premier_League/2021-2022.csv", header=T)
+Data4 <- Data4 %>% mutate(Date=dmy(Date)) %>% mutate(year=year(Date), month=month(Date), day=day(Date)) %>%
+  rename(date=Date, team_home=HomeTeam, team_away=AwayTeam, score_home=FTHG, score_away=FTAG) %>%
+  select(date, year, month, day, team_home,team_away,score_home,score_away) %>%
+  mutate(team_home = as.factor(team_home), team_away = as.factor(team_away), covid=2)
+
+Data <- rbind(Data1,Data2,Data3,Data4)
+
+Dataflip <- Data %>% mutate(pom_team=team_home, pom_score=score_home, team_home=team_away, team_away=pom_team, score_home=score_away, score_away=pom_score) %>% select(-pom_team,-pom_score)
+# Data2 <- Data %>% mutate(score_home=score_away)
+Data <- rbind(Data,Dataflip)
+Data <- Data %>% mutate(score = score_home, home_flag = c(rep(1,dim(Dataflip)[1]),rep(0,dim(Dataflip)[1]))) %>%
+  select(-score_home,-score_away) %>% rename(offense=team_home, defense=team_away) %>%
+  mutate(covid=as.factor(covid))
+
+Data %>% mutate(defense=as.numeric(defense), offense=as.numeric(offense)) %>%
+  select(covid, score, home_flag, defense, offense) %>% mutate(covid=as.numeric(covid)) %>%
+  pivot_longer(everything()) %>%
+  ggplot(aes(value)) + facet_wrap(~ name, scales = "free") + geom_histogram()
+```
+
+## Balanced Data
+
+\footnotesize
+```{r}
+subDat <- Data %>%
+  filter(date < "2019-07-01" | date > "2020-07-01") %>%
+  filter(offense %in% names(table(offense)[table(offense) > 100]), defense %in% names(table(defense)[table(defense) > 100]))
+
+subDat %>% mutate(defense=as.numeric(defense), offense=as.numeric(offense)) %>%
+  select(covid, score, home_flag, defense, offense) %>% mutate(covid=as.numeric(covid)) %>%
+  pivot_longer(everything()) %>%
+  ggplot(aes(value)) + facet_wrap(~ name, scales = "free") + geom_histogram()
+```
+
+## Models (Balanced Data)
+
+\tiny
+```{r, echo=T}
+m <- glm(score~covid*home_flag+defense+offense, data=subDat, family="poisson")
+msub <- glm(score~home_flag+defense+offense, data=subDat, family="poisson")
+anova(m,msub,test="LRT")
+```
+
+## Models (Full Data)
+
+\tiny
+```{r, echo=T}
+m <- glm(score~covid*(home_flag+defense+offense), data=Data, family="poisson")
+msub <- glm(score~home_flag+defense+offense, data=Data, family="poisson")
+anova(m,msub,test="LRT")
+library(car)
+Anova(m,type=2)
+```
+
+## Models (Full Data)
+
+\tiny
+```{r, echo=T}
+minter <- glm(score~covid*(home_flag+defense)+offense, data=Data, family="poisson")
+msub <- glm(score~home_flag+covid*defense+offense, data=Data, family="poisson")
+anova(m,msub,test="LRT")
+anova(minter,msub,test="LRT")
+sum(is.na(coefficients(m)))
+```
+
+\footnotesize
+* we are on the edge of significance with a model that has too few observations to rely on asymptotics and to estimate all the parameters
+
+## Common Feedback
+
+* describe data you use, not data you were given
+    - (nobody cares whether you got 4 csv files or a single one, and which variables were available but never used because they have absolutely nothing to do with anything, like the betting odds)
+* there are some reserved words in statistics such as "significant" or "robust" that are better paraphrased when not used in the reserved meaning (statistical testing, robustness against outliers)
+* multiple models vs. a single model
+* not taking into account which teams are playing leads to dependence between data
+
+
+
+
+
