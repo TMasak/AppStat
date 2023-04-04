@@ -122,8 +122,11 @@ sum(is.na(coefficients(m)))
 * there are some reserved words in statistics such as "significant" or "robust" that are better paraphrased when not used in the reserved meaning (statistical testing, robustness against outliers)
 * multiple models vs. a single model
 * not taking into account which teams are playing leads to dependence between data
-
-
+* not including the intercept (i.e. manually discarding the intercept) is problematic since more parameters become inconsistent
+    - Poisson vs. multinomial likelihoods
+    - it is never a good idea to discard the intercept!
+* doesn't vs. does not; let's vs. let us
+* description of pre-processing your data (e.g. every match coded twice)
 
 
 
