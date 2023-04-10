@@ -31,22 +31,22 @@ library(tidyverse)
 ```{r}
 library(tidyverse)
 library(lubridate)
-Data1 <- read.csv("../Data/Premier_League/season-1819.csv", header=T)
+Data1 <- read.csv("../Data/3_Premier_League/season-1819.csv", header=T)
 Data1 <- Data1 %>% mutate(Date=dmy(Date)) %>% mutate(year=year(Date), month=month(Date), day=day(Date)) %>%
   rename(date=Date, team_home=HomeTeam, team_away=AwayTeam, score_home=FTHG, score_away=FTAG) %>%
   select(date, year, month, day, team_home,team_away,score_home,score_away) %>%
   mutate(team_home = as.factor(team_home), team_away = as.factor(team_away), covid=0)
-Data2 <- read.csv("../Data/Premier_League/2019-20.csv", header=T)
+Data2 <- read.csv("../Data/3_Premier_League/2019-20.csv", header=T)
 Data2 <- Data2 %>% mutate(Date=dmy(Date)) %>% mutate(year=year(Date), month=month(Date), day=day(Date)) %>%
   rename(date=Date, team_home=HomeTeam, team_away=AwayTeam, score_home=FTHG, score_away=FTAG) %>%
   select(date, year, month, day, team_home,team_away,score_home,score_away) %>%
   mutate(team_home = as.factor(team_home), team_away = as.factor(team_away), covid=0)
-Data3 <- read.csv("../Data/Premier_League/2020-2021.csv", header=T)
+Data3 <- read.csv("../Data/3_Premier_League/2020-2021.csv", header=T)
 Data3 <- Data3 %>% mutate(Date=dmy(Date)) %>% mutate(year=year(Date), month=month(Date), day=day(Date)) %>%
   rename(date=Date, team_home=HomeTeam, team_away=AwayTeam, score_home=FTHG, score_away=FTAG) %>%
   select(date, year, month, day, team_home,team_away,score_home,score_away) %>%
   mutate(team_home = as.factor(team_home), team_away = as.factor(team_away), covid=1)
-Data4 <- read.csv("../Data/Premier_League/2021-2022.csv", header=T)
+Data4 <- read.csv("../Data/3_Premier_League/2021-2022.csv", header=T)
 Data4 <- Data4 %>% mutate(Date=dmy(Date)) %>% mutate(year=year(Date), month=month(Date), day=day(Date)) %>%
   rename(date=Date, team_home=HomeTeam, team_away=AwayTeam, score_home=FTHG, score_away=FTAG) %>%
   select(date, year, month, day, team_home,team_away,score_home,score_away) %>%
@@ -115,7 +115,20 @@ sum(is.na(coefficients(m)))
 \footnotesize
 * we are on the edge of significance with a model that has too few observations to rely on asymptotics and to estimate all the parameters
 
-## Common Feedback
+## A GLMM
+
+```{r,echo=T}
+library(lme4)
+m <-  glmer(score ~ covid*home_flag+(1|defense/covid)+(1|offense), data=Data, family="poisson")
+msub <-  glmer(score ~ covid*home_flag+(1|defense)+(1|offense), data=Data, family="poisson")
+```
+
+* is `m` a good model?
+* can it be simplified to `msub`?
+* in both `m` and `msub`, the `covid:home_flag` interaction *looks* significant
+    - home advantage reduced during covid and bounced back after covid (not to the original level, but the difference not significant)
+
+## Common Feedback to Reports
 
 * describe data you use, not data you were given
     - (nobody cares whether you got 4 csv files or a single one, and which variables were available but never used because they have absolutely nothing to do with anything, like the betting odds)
@@ -128,5 +141,5 @@ sum(is.na(coefficients(m)))
 * doesn't vs. does not; let's vs. let us
 * description of pre-processing your data (e.g. every match coded twice)
 
-
+# Common Feedback to Code by Charles
 
