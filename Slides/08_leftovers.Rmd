@@ -143,3 +143,49 @@ msub <-  glmer(score ~ covid*home_flag+(1|defense)+(1|offense), data=Data, famil
 
 # Common Feedback to Code by Charles
 
+## General comments
+
+Overall good code, just a few remarks:
+
+Major: 
+
+* variable names should be descriptive `data`, `data2` (use `raw_data`, `clean_data`)
+* Code style (see next slides)
+* Colors (see next slides)
+
+
+Minor:
+
+* commit messages: should describe work done by the commit \footnotesize(`ahhhhh` might reflect how you feel at the time of commit, but it's not very informative)
+
+
+## Code style
+
+Code spacing and linting are important\footnote{check [https://style.tidyverse.org/]([https://style.tidyverse.org/) for a reference}
+
+```{r,eval=FALSE,echo=TRUE}
+# Good
+do_something_very_complicated(
+  something = "that",
+  requires = many,
+  arguments = "some of which may be long"
+)
+
+# Bad
+do_something_very_complicated("that", requires, many, arguments,
+                              "some of which may be long"
+                              )
+```
+
+## Color palette
+
+* understand color scheme selection\footnote{see [https://www.gastonsanchez.com/](https://www.gastonsanchez.com/) for more details} 
+* use preset palettes: 
+
+
+```{r,echo=T,fig.height=3, fig.width=12,  fig.align='center'}
+library(RColorBrewer)
+par(mfrow=c(1,2))
+display.brewer.pal(name = "Blues", n = 4)
+display.brewer.pal(name = "Set1", n = 4)
+```
