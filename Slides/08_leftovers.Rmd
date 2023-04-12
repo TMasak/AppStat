@@ -117,11 +117,16 @@ sum(is.na(coefficients(m)))
 
 ## A GLMM
 
+\footnotesize
 ```{r,echo=T}
 library(lme4)
-m <-  glmer(score ~ covid*home_flag+(1|defense/covid)+(1|offense), data=Data, family="poisson")
-msub <-  glmer(score ~ covid*home_flag+(1|defense)+(1|offense), data=Data, family="poisson")
+m <-  glmer(score ~ covid*home_flag+(1|defense/covid)+(1|offense), 
+            data=Data, family="poisson")
+msub <-  glmer(score ~ covid*home_flag+(1|defense)+(1|offense), 
+               data=Data, family="poisson")
 ```
+
+
 
 * is `m` a good model?
 * can it be simplified to `msub`?
@@ -149,7 +154,7 @@ Overall good code, just a few remarks:
 
 Major: 
 
-* variable names should be descriptive `data`, `data2` (use `raw_data`, `clean_data`)
+* variable names should be descriptive: `data`, `data2` → `raw_data`, `clean_data`
 * Code style (see next slides)
 * Colors (see next slides)
 
@@ -161,8 +166,9 @@ Minor:
 
 ## Code style
 
-Code spacing and linting are important\footnote{check [https://style.tidyverse.org/]([https://style.tidyverse.org/) for a reference}
+Code spacing and linting are important [https://style.tidyverse.org/]([https://style.tidyverse.org/) 
 
+\footnotesize
 ```{r,eval=FALSE,echo=TRUE}
 # Good
 do_something_very_complicated(
@@ -179,7 +185,7 @@ do_something_very_complicated("that", requires, many, arguments,
 
 ## Color palette
 
-* understand color scheme selection\footnote{see [https://www.gastonsanchez.com/](https://www.gastonsanchez.com/) for more details} 
+* understand color scheme selection: [https://www.gastonsanchez.com/](https://www.gastonsanchez.com/) 
 * use preset palettes: 
 
 
