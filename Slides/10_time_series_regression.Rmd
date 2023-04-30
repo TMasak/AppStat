@@ -1,0 +1,267 @@
+---
+title: "Week 10: Forecasting and Time Series Regression"
+subtitle: "MATH-516 Applied Statistics"
+author: "Tomas Masak"
+# date: "`r format(Sys.time(), '%b %d, %Y')`"
+date: "May 1st 2023"
+output: beamer_presentation
+classoption: "presentation"
+theme: "Madrid"
+colortheme: "seahorse"
+footer: "Copyright (c) 2023, EPFL"
+urlcolor: blue
+header-includes:
+  - \usepackage{bm}
+  - \newcommand{\E}{\mathbb{E}}
+  - \newcommand{\R}{\mathbb{R}}
+  - \newcommand{\argmin}{\mathrm{arg\,min\;}}
+  - \newcommand{\rank}{\mathrm{rank}}
+  - \newcommand\independent{\protect\mathpalette{\protect\independenT}{\perp}}\def\independenT#1#2{\mathrel{\rlap{$#1#2$}\mkern2mu{#1#2}}}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+```
+
+# Forecasting with SARIMA
+
+## Truth about Forecasting
+
+\begin{center}
+\includegraphics[width=0.7\textwidth]{../Plots/rear_mirror.jpg}
+\end{center}
+
+\bigskip
+**Forecasting time series is like driving a car using the rear mirror only.**
+
+* though arguably more useful as a skill (the field is huge!)
+
+Depending on who you ask SARIMA models are either:
+
+* fairly old and simple, but surprisingly powerful
+* overcomplicated and easily outperformed by vanilla methods
+    - e.g. fitting a regression model and extrapolating
+
+## Air Passengers Revisited
+
+\footnotesize
+```{r, echo=T, fig.align='center', out.width='70%', fig.show='hold', fig.dim=c(6,4)}
+library(forecast) # needed on every line below
+# fit <- auto.arima(AirPassengers)
+fit <- Arima(AirPassengers, order=c(2,1,1), seasonal=c(0,1,0)) # capital A
+preds <- forecast(fit, 12*10, c(0.5,0.95)) # 2-year ahead forecast
+autoplot(AirPassengers) + autolayer(preds)
+```
+
+## Explanation
+
+\footnotesize
+$$
+\Phi_{[P]}(B^s)\phi_{[p]}(B) (1-B^s)^D (1-B)^d X_t = \Theta_{[Q]}(B^s) \theta_{[q]}(B)Z_t
+$$
+
+How are the point forecasts above calculated? In a recursive way:
+
+1. Express $X_t$ from the SARIMA equation above.
+2. Replace $t$ by $N+h$ in the equation.
+3. Replace future observations (up to $N+h-1$) by their forecasts, future errors by zeros, and past errors by the respective residuals. (these are BLUPs given the past)
+
+Under certain assumptions:
+
+\vspace{-1mm}
+* $Y_t = (1-B^s)^D (1-B)^d X_t$ must be
+    - stationary
+    - *invertible*, i.e. polynomial $\Theta_{[Q]}(x^s) \theta_{[q]}(x)$ has no roots inside the unit circle, i.e. $Z_t$ can be expressed as a linear combination of past $X$'s
+        - \textcolor{gray}{typically we also require \textit{causality}, i.e. polynomial $\Phi_{[P]}(x^s)\phi_{[p]}(x)$ has no roots inside the unit circle, i.e. $X_t$ can be expressed as a linear combination of past $Z$'s}
+
+\vspace{-1mm}
+the procedure above results in the best linear unbiased prediction. (under Gaussianity, it is the best prediction in the mean square sense)
+
+## ARIMA(1,1,1) Example
+
+Say that we fitted an ARIMA(1,1,1) model
+$$
+(1- \widehat \phi B) (1-B) X_t = (1+ \widehat\theta B) Z_t
+$$
+The forecasting procedure above consists of the following steps:
+
+1. $X_t = X_{t-1} + \widehat \phi X_{t-1} - \widehat \phi X_{t-2} + Z_t + \widehat \theta Z_{t-1}$
+2. $X_{N+1} = X_{N} + \widehat \phi X_{N} - \widehat \phi X_{N-1} + Z_{N+1} + \widehat \theta Z_{N}$
+3. $\widehat X_{N+1} = X_{N} + \widehat \phi X_{N} - \widehat \phi X_{N-1} + 0 + \widehat \theta \widehat Z_{N}$
+
+This was a one-step ahead forecast. To do two steps ahead, replace $N$ by $N+1$ in step 2 and repeat (replacing $X_{N+1}$ by $\widehat{X}_{N+1}$ that is now available).
+
+## Prediction Intervals
+
+* constructed under Gaussian assumptions
+    - i.e. as $\widehat X_{N+h} \pm q_{1-\alpha/2} \widehat{\sigma}_h$, where $q_{1-\alpha/2}$ is a Gaussian quantile and $\widehat{\sigma}_h$ is the standard error of the prediction, calculated with estimators plugged in (details omitted), hence
+* only reflects uncertainty about future realizations of $Z$'s!
+* including uncertainty about parameter estimation possible via Monte Carlo simulation
+    - i.e. parametric bootstrap, drawing parameter values for every simulation from their respective asymptotic distribution (was not discussed, but exists)
+    - also possible to do non-parametric bootstrap instead to protect ourselves against non-Gaussian $Z$'s (set `bootstrap=T` in `forecast()`)
+* including uncertainty about model selection requires a more careful simulation study
+    - a relatively easy but somewhat arbitrary option is to simulate from an unnecessarily large model and perform automatic model selection for every simulation run
+
+# Time Series Regression
+
+## Air Passengers Revisited
+
+* say the trendin Air Passangers data set is linear (after log) and we want a confidence interval on the slope.
+
+\footnotesize
+```{r, echo=T, fig.align='center', out.width='60%', fig.show='hold', fig.dim=c(6,4)}
+lmData <- data.frame(y = log(AirPassengers),
+                     month = as.factor(rep(1:12,length(AirPassengers)/12)),
+                     t = 1:length(AirPassengers))
+lmfit <- lm(y~., data=lmData)
+plot(log(AirPassengers))
+points(seq(1949, 1961, length=144),fitted(lmfit), type="l", col="blue")
+```
+
+## Air Passengers Revisited
+
+\tiny
+```{r,echo=T}
+summary(lmfit)$coefficients
+confint(lmfit)["t",]
+```
+
+\normalsize
+* Problem: data are not i.i.d.
+* going back to the proof of the Gauss-Markov theorem, we would realize
+    - the estimates are still unbiased (does not mean much)
+    - they are no longer "best" (among linear unbiased estimators)
+    - the standard errors, and hence also CIs, are wrong (thinking there is more df)
+
+## Generalized Least Squares
+
+* standard least squares (regression) model: 
+    - $Y = \mathbf X \beta + \epsilon$ with $\epsilon \sim \mathcal{N}(\mathbf 0, \sigma^2 \mathbf I)$ 
+* generalized least squares model:
+    - $Y = \mathbf X \beta + \epsilon$ with $\epsilon \sim \mathcal{N}(\mathbf 0, \sigma^2 \Sigma)$
+* if we knew the dependency structure $\Sigma$, we could change the variables:
+    - $\Sigma^{-1/2} Y = \Sigma^{-1/2}\mathbf X \beta + \Sigma^{-1/2} \epsilon$
+    - $\widetilde{Y} = \widetilde X \beta + \widetilde\epsilon$ ... standard least squares work here (and they correspond to Gaussian MLE)
+* if we knew the dependency structure up to a fixed no. of parameters $\alpha \in \R^q$, we could do the Gaussian MLE jointly for $\beta,\sigma^2,\alpha$
+    - this is exactly the case when the residuals follow an ARMA model
+    - one could also iterate between the change of variables and fitting ARMA to the residuals
+        - this is called Cochrane-Orcutt method, and it provably converges to the MLE, which is usually obtained numerically (`gls()` from the `nlme` package in `R`)
+
+## Air Passengers Revisited
+
+* lets say that AR(1) is a good model for the residuals above
+    - this is what we can decide doing time series analysis like last week
+
+\small
+```{r, echo=T, fig.align='center', out.width='45%', fig.show='hold', fig.dim=c(6,4)}
+library(nlme)
+R_struct <- corARMA(form=~t, p=1) # AR(1) correlation structure
+glsfit <- gls(y~t+month, data=lmData, corr=R_struct, method="ML")
+confint(lmfit)["t",]
+confint(glsfit)["t",] # wider than above
+```
+
+## Air Passengers Revisited
+
+* fitted values are typically very similar, and so are the residuals
+    - if they are not, we should re-think our dependency structure
+
+```{r, echo=T, fig.align='center', out.width='45%', fig.show='hold', fig.dim=c(6,4)}
+plot(as.numeric(lmData$y),type="l")
+points(fitted(lmfit),type="l", col="red")
+points(fitted(glsfit),type="l", col="blue", lty=2)
+
+plot(resid(lmfit),type="l", col="red")
+points(as.numeric(resid(glsfit)),type="l", col="blue", lty=2)
+```
+
+## Hypothesis Testing
+
+Maximum likelihood theory (potentially with nuissance parameters) works here:
+
+* let $Y \sim \mathcal{N}_N(\mathbf X \beta, \sigma^2 \Sigma)$, where $\Sigma \in \R^{N\times N}$ depends on a parameter vector $\alpha \in \R^r$ (of a fixed sized as $N \to \infty$)
+* let $\theta \in \R^p$ is a vector containing all the parameters, i.e. $\beta, \sigma^2, \alpha$, such that the hypothesis concerns the first $q$ entries of $\theta$, namely:
+* let $\Theta_1 \times \Theta_c$, where $\Theta_1 \subset \R^q$ and $\Theta_c \in \R^{p-q}$ is the parameter space, and $\Theta_0 \subset \Theta_1$
+    - $H_0: \theta \in \Theta_0 \times \Theta_c$
+    - $H_1: \theta \in \Theta_1 \times \Theta_c$
+* then under $H_0$ the likelihood ratio statistics approaches the $\chi^2$-distribution:
+$$
+LR_N = 2\big[ \ell_N(\widehat{\theta}_1) - \ell_N(\widehat{\theta}_0) \big] \stackrel{\cdot}{\sim} \chi^2_q
+$$
+    - $\widehat{\theta}_0 = \mathrm{arg\,max}_{\theta \in \Theta_0 \times \Theta_c} \ell_N(\theta)$
+    - $\widehat{\theta}_1 = \mathrm{arg\,max}_{\theta \in \Theta_1 \times \Theta_c} \ell_N(\theta)$
+
+## Air Passengers Revisited
+
+* `anova()` in `R` works
+    - use `method="ML"` is used instead of `"REML"` when changing the mean structure
+
+\footnotesize
+```{r, echo=T}
+library(car)
+# glsfit <- gls(y~t+month, data=lmData, corr=R_struct, method="ML")
+Anova(glsfit, type=2)
+# or half-manually:
+subfit_1 <- gls(y~month, data=lmData, corr=R_struct, method="ML")
+subfit_2 <- gls(y~t, data=lmData, corr=R_struct, method="ML")
+```
+
+## Air Passengers Revisited
+
+\footnotesize
+```{r, echo=T}
+anova(subfit_1, glsfit)
+anova(subfit_2, glsfit)
+# or entirely manually:
+1-pchisq(2*(glsfit$logLik - subfit_1$logLik),
+         length(coef(glsfit)) - length(coef(subfit_1)))
+1-pchisq(2*(glsfit$logLik - subfit_2$logLik),
+         length(coef(glsfit)) - length(coef(subfit_2)))
+```
+
+## Beaver Body Temperature
+
+\footnotesize
+```{r, echo=T, fig.align='center', out.width='60%', fig.show='hold', fig.dim=c(6,4)}
+data(beavers)
+beaver2 <- beaver2[,c(3,4)] # drop time
+x <- ts(beaver2, start=0,frequency=6)
+plot(x, main="", xlab="time [h]")
+```
+
+**Question**: What is the effect of activity on the body temperature?
+
+## Beaver Body Temperature
+
+\footnotesize
+```{r, echo=T, fig.align='center', out.width='31%', fig.show='hold', fig.dim=c(6,4)}
+x1 <- window(x, start=0, end=max(which(x[,2]==0))/6-1)[,1]
+x2 <- window(x, start=min(which(x[,2]==1))/6)[,1]
+plot(x1,main="Inactive");acf(x1, main="Inactive"); pacf(x1, main="Inactive")
+plot(x2, main="Active"); acf(x2, main="Active"); pacf(x2, main="Active")
+```
+
+Lags have no meaning here, let's take AR(1) as the model
+
+## Beaver Body Temperature
+
+\footnotesize
+```{r, echo=T}
+beaver2$time <- seq_along(beaver2$temp)
+R_struct <- corARMA(form=~time, p=1) # AR(1) correlation structure
+( glsfit <- gls(temp~activ, data=beaver2, corr=R_struct, method="ML") )
+```
+
+## Beaver Body Temperature (Alternatively)
+
+\footnotesize
+```{r, echo=T}
+arima(x[,1], c(1,0,0), xreg=x[,2])
+```
+
+\normalsize
+* standard errors are slightly different with `arima()`, since calculated empirically, while `gls()` uses asymptotic formula
+* in both cases, activity increases body temperature of the beaver by about 0.6 degrees
+* we could test significance of this value as above (but we see from s.e. that clearly significant)
+
+
