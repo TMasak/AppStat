@@ -184,7 +184,7 @@ Maximum likelihood theory (potentially with nuissance parameters) works here:
 * let $\Theta_1 \times \Theta_c$, where $\Theta_1 \subset \R^q$ and $\Theta_c \in \R^{p-q}$ is the parameter space, and $\Theta_0 \subset \Theta_1$
     - $H_0: \theta \in \Theta_0 \times \Theta_c$
     - $H_1: \theta \in \Theta_1 \times \Theta_c$
-* then under $H_0$ the likelihood ratio statistics approaches the $\chi^2$-distribution:
+* then under $H_0$ and regularity assumptions the likelihood ratio statistics approaches the $\chi^2$-distribution:
 $$
 LR_N = 2\big[ \ell_N(\widehat{\theta}_1) - \ell_N(\widehat{\theta}_0) \big] \stackrel{\cdot}{\sim} \chi^2_q
 $$

@@ -1,0 +1,593 @@
+---
+title: "Week 12: Functional Data Analysis"
+subtitle: "MATH-516 Applied Statistics"
+author: "Tomas Masak"
+# date: "`r format(Sys.time(), '%b %d, %Y')`"
+date: "May 8th 2023"
+output: beamer_presentation
+classoption: "presentation"
+theme: "Madrid"
+colortheme: "seahorse"
+footer: "Copyright (c) 2023, EPFL"
+urlcolor: blue
+header-includes:
+  - \usepackage{bm}
+  - \newcommand{\E}{\mathbb{E}}
+  - \newcommand{\R}{\mathbb{R}}
+  - \newcommand{\argmin}{\mathrm{arg\,min\;}}
+  - \newcommand{\rank}{\mathrm{rank}}
+  - \newcommand\independent{\protect\mathpalette{\protect\independenT}{\perp}}\def\independenT#1#2{\mathrel{\rlap{$#1#2$}\mkern2mu{#1#2}}}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+library(fda)
+```
+
+# PCA
+
+## PCA on the Population Level
+
+* random vector $X \in \R^p$ such that $\E\|X\|^2 < \infty$
+    - $\mu = \E X$
+    - $\mathbf C = \E (X-\mu)(X-\mu)^\top$
+* eigendecomposition: $\mathbf C = \sum_{j=1}^p \lambda_j e_j e_j^\top$
+* define $Z_j = e_j^\top(X-m)$ leading to the expansion
+\[
+X = \mu + \sum_{j=1}^p Z_j e_j
+\]
+    - $X$ can be represented as a weighted sum of the eigenvectors of $\mathbf C$ with the weights uncorrelated variables with variances that are eigenvalues of $\mathbf C$
+* typically, we retain $r < p$ PCs and approximate $X \approx \mu + \sum_{j=1}^q Z_j e_j$, retaining $\sum_{j=1}^q \lambda_j / \sum_{j=1}^p \lambda_j$ proportion of variance explained
+* optimality properties come from the ordering of eigenvalues $\lambda_1 \geq \lambda_2 \geq \ldots$, thus the approximation above is the optimal $q$-dimensional one
+
+## PCA on the Sample Level
+
+* random sample $X_1,\ldots,X_N \in \R^p$ such that $\E\|X_1\|^2 < \infty$
+    - $\mu = \E X_1$ estimated empirically as $\widehat{\mu} = \frac{1}{N}\sum_n X_n$
+    - $\mathbf C = \E (X_1-\mu)(X_1-\mu)^\top$ estimated as $\widehat{\mathbf C} = \frac{1}{N} \sum_{n} (X_n - \widehat{\mu})(X_n - \widehat{\mu})^\top$
+* eigendecomposition: $\widehat{\mathbf C} = \sum_{j=1}^{p\wedge N} \widehat{\lambda}_j \widehat{e}_j \widehat{e}_j^\top$
+* for $n=1,\ldots,N$ define $z_{nj} = \widehat{e}_j^\top(X_n-\widehat{\mu})$ leading to the expansions
+\[
+X_n = \widehat{\mu} + \sum_{j=1}^{p\wedge N} z_{nj} \widehat{e}_j
+\]
+* again, we can approximate by retaining $r<p\wedge N$ components only, leading to the (least squares) optimal $q$-dimensional approximation
+* in practice, PCA is performed via SVD:
+    - let $\mathbf{X} \in \R^{N \times p}$ be the data matrix ($X_1$ is the 1st row, etc.)
+    - let $\mathbf X = \mathbf U \mathbf D \mathbf V^\top$ be its SVD
+    - then $\widehat{e}_j$ is the $j$-th column of $V$ and $(z_{nj}) = \mathbf U \mathbf D$ are the scores
+
+## Example: Genes
+
+Anyone has underwent a genetic ancestry testing?
+
+* $N=1387$ European individuals genotyped at $p=500568$ DNA loci (using a SNP chip)
+    - only individuals with European ancestry in the data set
+* 2 PCs kept for *visualization* purposes (percentage of variability retained is not reported)
+
+Source: Novembre at al. (2008) Genes mirror geography within Europe. *Nature*.
+
+## Example: Genes
+
+\begin{center}
+\includegraphics[width=0.8\textwidth]{../Plots/PCA_genes.PNG}
+\end{center}
+
+## Example: Running Race
+
+* $N=80$ runners competing in a 100 km race
+* data consist of average velocity of runners on intervals of 10 kilometers, i.e. $p=10$
+* 3 PCs kept (again, percentage of variability retained not reported, but likely high)
+
+Source: Jolliffe (2002) *Principal Component Analysis*. Springer.
+
+Interpretation of the PCs on the next slide:
+
+* 1st PC is all positive, hence it captures variability in overall speed
+* 2nd PC contrasts the beginning against the end of the race
+    - i.e. captures how much people slow down in this case
+    - do not mistake with the overall slow down pattern captured by the mean!
+* 3rd PC contrasts the very beginning and the very end of the race against the middle part
+    - intepretation for an individual would depend on 2nd PC score, but captures e.g. the bounce-back/burn-out effect towards the very end of the race
+
+## Example: Running Race
+
+\begin{center}
+\includegraphics[width=\textwidth]{../Plots/PCA_run.PNG}
+\end{center}
+
+## The Two Examples Compared
+
+In the case of genes:
+
+* results are very nice, but also arbitrary and lucky
+* does not make sense to try to plot or interpret the data and/or the PCs
+    - interpretation of the score plot comes from external data
+* it is a **multivariate** example: the genome is an extremely long sequence and we subsampled it into a (still large) vector
+    - we could increase $p$ and every new locus would bring an entirely new piece of information (new degree of freedom)
+    - covariance would increase in size, the new eigenvalues would not go down to zero (would not be *summable* in the limit), the leading PCs could potentially explain less and less variance
+
+## The Two Examples Compared    
+
+In the case of running race:
+
+* it makes sense to plot the data and interpret the PCs
+    - interpretation is intrinsic
+    - we could also plot scores and then we could look at a specific runner and decide on his characteristics (how fast overall, how much he slowed down and how much he bounced back/burnt out towards the end) based on his position in the 3D plot
+* it is a **functional** example: we have discrete measurements over a latent continuous process
+    - time is continuous, runners have underlying velocity curves over time, and this curve is continuous by the laws of nature
+    - if we increased $p$ (took more measurements), every new measurement would not bring an entirely new piece of information
+    - the covariance would increase in size, but the eigenvalues would go down to zero (would be *summable* in the limit), and the leading PCs would still explain approximately the same portion of variance
+    - derivatives are meaningful (data points themselves derivatives of times)
+    
+## Functional PCA
+
+* random function $X \in \mathcal{L}^2[0,1]$ such that $\E\|X\|^2 < \infty$
+    - $\mu = \E X$ ... now a function
+    - $\mathcal C = \E (X-\mu)\otimes (X-\mu)$ ... now an operator
+* $\mathcal C$ has a corresponding kernel $c$ such that $c(t,s) = \mathrm{cov}(X(t),X(s))$
+* eigendecomposition $\mathcal C = \sum_{j=1}^\infty \lambda_j e_j \otimes e_j$
+* **Mercer's Theorem**: if $c$ is continuous, then $\displaystyle c(t,s) = \sum_{j=1}^\infty \lambda_j e_j(t) e_j(s)$
+* define $Z_j = \langle e_j, X-m\rangle$ leading to the expansion
+\[
+X = \mu + \sum_{j=1}^\infty Z_j e_j \quad \text{and approximation} \quad X^{(r)} = \mu + \sum_{j=1}^r Z_j e_j
+\]
+* equalities hold in mean-square sense, but under continuity also in the uniform sense
+
+**Karhunen-Loeve Theorem**: If $\mu$ and $c$ are continuous, then
+\[
+\sup_{t \in [0,1]} \E \|X(t)- X^{(r)}(t)\|_2^2 \to 0 \quad \text{as } r \to \infty
+\]
+
+## Functional PCA
+
+* and similarly for the sample version...
+* data (even functional) are observed discretely, though not always on a grid
+* the previous slide says that Functional PCA is the same once we decided how to treat the data
+    - i.e. how measurements (data points) relate to the underlying function
+* it is rather the idea of a continuous latent process that sets functional data apart
+
+## Air Quality around Lake Geneva
+
+* NO2 quantity in the air recorded every hour between Sept and Nov of 2005 to 2011 and a single datum considered to be one week, i.e. $N=62$ and $p=7\cdot 24=168$
+    - how does this compare to time series?
+* 3 PCs kept (again, percentage of variability retained not reported, but likely high)
+* on the next slide:
+    - vertical dashed lines show every midnight
+    - eigenfunctions are slightly smoothed
+
+<!---
+Interpretation:
+
+* 1st PC captures the overall level (overall bad vs. overall good weeks)
+    - magnitude larger in the evenings, so afternoons are more variable
+* 2nd PC captures early/late week effects
+    - surprisingly cannot be attributed to weekends!
+* 3rd PC captures day/night effects (it is positive during the day and negative during the nights)
+--->
+
+## Air Quality around Lake Geneva
+
+\begin{center}
+\includegraphics[width=0.7\textwidth]{../Plots/PCA_air.PNG}
+\end{center}
+
+# B-splines
+
+## Berkeley Growth Data (Running Example)
+
+```{r}
+library(fda)
+data(growth)
+par(mfrow=c(1,2))
+plot(growth$age,growth$hgtf[,1], ylim=c(60,180), main="3 Girls (of 54)", xlab="age", ylab="height")
+rug(growth$age)
+points(growth$age,growth$hgtf[,5],pch=2,col=2)
+points(growth$age,growth$hgtf[,7],pch=3,col=3)
+plot(growth$age,growth$hgtf[,1], ylim=c(60,180), main="3 Boys (of 39)", xlab="age", ylab="height")
+rug(growth$age)
+points(growth$age,growth$hgtm[,5],pch=2,col=3)
+points(growth$age,growth$hgtm[,7],pch=3,col=4)
+```
+
+## Basis Representation
+
+* let $y_1,\ldots,y_N$ (noisy) values of a function $f$ at observation locations of $x_1,\ldots,x_N$ on an interval $[0,T]$
+* let $\beta_1(x), \ldots, \beta_q(x)$ be basis functions chosen such that one can approximate $y(x) \stackrel{\cdot}{=} \sum_{j=1}^q \xi_j \beta_j(x)$
+* let $b_{nj} = \beta_j(x_n)$ and $B = (b_{nj})$
+$$
+\min_\xi \sum_{n=1}^N \left[ y_n - \sum_{j=1}^q \xi_j \beta_j(x_n) \right]^2 = \min_\xi \| y - B \xi\|_2^2
+$$
+* $\Rightarrow \quad \widehat{\xi} = \left( B^\top B \right)^{\dagger} B^\top y$
+* let $z_1,\ldots,z_M \in [0,T]$ be evaluation locations
+* we estimate $\big(f(z_1), \ldots, f(z_{M})\big)^\top$ by $\widetilde{B} \widehat{\xi}$ where $\widetilde{B} = (\widetilde{b}_{ij})$ and $\widetilde{b}_{ij} = \beta_{j}(z_i)$
+
+*Note*: This is just linear regression. If the no. of basis functions $q$ is relatively high compared to $N$, use ridge regularization.
+
+## B-splines: Example
+
+```{r}
+xeval <- seq(1,18,by=0.01)
+B <- bsplineS(xeval, norder=6, breaks=growth$ag) # breaks = knots
+plot(xeval, B[,1], type="l", ylab="", xlab="age")
+abline(v=growth$ag, col="gray60")
+for(n in 2:35) points(xeval, B[,n], type="l", col=n)
+```
+
+## B-splines: Toy Example
+
+\footnotesize
+```{r, echo=T, out.width="60%", fig.dim=c(6,4), fig.align='center'}
+x <- c(1.000, 11.355, 18.000)
+y <- c(0.000, 2.557, 0.000)
+z <- seq(range(x)[1], range(x)[2], length=100)
+plot(x,y)
+Bplot <- bsplineS(z, x)
+for(n in 1:5) points(z,Bplot[,n],type="l",col=1+n, lty=2)
+B <- bsplineS(x,x)
+xi_hat <- ginv(t(B) %*% B) %*% t(B) %*% y
+f_hat <- as.vector(Bplot %*% xi_hat)
+points(z, f_hat, type="l")
+```
+
+## After Pre-processing (namely B-spline Smoothing)
+
+* the `.RData` file below stores coefficients of the height curves (and velocity and acceleration, i.e. the 1st and 2nd derivatives of height) for the Berkeley growth data w.r.t the B-spline basis `B` below, which we evaluate on a grid `xeval` for plotting purposes
+* here we use 6-order B-splines since we will also work with 2nd derivatives and we want to have cubic spline fit for those (order is one higher than the polynomial degree)
+
+\scriptsize
+```{r,echo=T,eval=F}
+load("../Data/Berkeley_growth_preprocessed.RData") # Data
+xeval <- seq(1,18,by=0.1)
+B <- bsplineS(xeval, norder=6, breaks=growth$ag)
+fem_height <- B %*% Data$fem_height
+mal_height <- B %*% Data$mal_height
+par(mfrow=c(1,2))
+plot(xeval, fem_height[,1],type="l", ylim=range(fem_height), main="Height Curves Girls")
+for(n in 2:dim(Data$fem_height)[2]) points(xeval, fem_height[,n],
+                                           type="l",col=n,lty=n%%6+1)
+plot(xeval, mal_height[,1],type="l", ylim=range(mal_height), main="Height Curves Boys")
+for(n in 2:dim(Data$mal_height)[2]) points(xeval, mal_height[,n],
+                                           type="l",col=n,lty=n%%6+1)
+```
+
+## After Pre-processing (namely B-spline Smoothing)
+
+```{r}
+load("../Data/Berkeley_growth_preprocessed.RData") # Data
+xeval <- seq(1,18,by=0.1)
+B <- bsplineS(xeval, norder=6, breaks=growth$ag)
+fem_height <- B %*% Data$fem_height
+mal_height <- B %*% Data$mal_height
+par(mfrow=c(1,2))
+plot(xeval, fem_height[,1],type="l", ylim=range(fem_height), main="Height Curves Girls")
+for(n in 2:dim(Data$fem_height)[2]) points(xeval, fem_height[,n],type="l",col=n,lty=n%%6+1)
+plot(xeval, mal_height[,1],type="l", ylim=range(mal_height), main="Height Curves Boys")
+for(n in 2:dim(Data$mal_height)[2]) points(xeval, mal_height[,n],type="l",col=n,lty=n%%6+1)
+```
+
+## PCA of Height (Girls)
+
+```{r}
+perform_pca <- function(X){
+  mu <- colMeans(X)
+  X <- sweep(X,2,mu)
+  
+  SVD <- svd(X)
+  Scores <- SVD$u %*% diag(SVD$d)
+  Loadings <- SVD$v
+  # cat(cumsum(SVD$d^2/sum(SVD$d^2))[1:5]) # FVE
+  FVE <- SVD$d^2/sum(SVD$d^2)
+  # plot(SVD$d^2/sum(SVD$d^2), type="h")
+  
+  lam <- sqrt(length(xeval)) # measure change
+  op <- par(mfrow=c(3,2),mar=rep(2,4))
+  plot(xeval, X[1,]+mu,type="l", ylim=range(X+mu), main="Data and the mean")
+  for(n in 1:dim(X)[1]) points(xeval, X[n,]+mu,type="l")
+  points(xeval,mu,col=2,lwd=2,type="l")
+  plot(Scores[1,]*sign(sum(Loadings[,1])), Scores[2,]*sign(sum(Loadings[,2])), main="1st vs 2nd PC scores")
+  
+  plot(xeval,Loadings[,1]*sign(sum(Loadings[,1])),type="l", main=paste0("1st PC (",round(100*FVE[1])," % of var)"))
+  # plot(xeval, X[1,]+mu,type="l", ylim=range(X+mu))
+  # for(n in 1:dim(X)[1]) points(xeval, X[n,]+mu,type="l")
+  # points(xeval,mu,col=2,lwd=2,type="l")
+  # points(xeval,mu+3*SVD$d[1]/lam*SVD$v[,1],col=2,lwd=2,type="l",lty=2)
+  # points(xeval,mu-3*SVD$d[1]/lam*SVD$v[,1],col=2,lwd=2,type="l",lty=2)
+  
+  plot(xeval,Loadings[,2]*sign(sum(Loadings[,2])),type="l", main=paste0("2nd PC (",round(100*FVE[2])," % of var)"))
+  # plot(xeval, X[1,]+mu,type="l", ylim=range(X+mu))
+  # for(n in 1:dim(X)[1]) points(xeval, X[n,]+mu,type="l")
+  # points(xeval,mu,col=2,lwd=2,type="l")
+  # points(xeval,mu+10*SVD$d[2]/lam*SVD$v[,2],col=2,lwd=2,type="l",lty=2)
+  # points(xeval,mu-10*SVD$d[2]/lam*SVD$v[,2],col=2,lwd=2,type="l",lty=2)
+  
+  plot(xeval,Loadings[,3]*sign(sum(Loadings[,3])),type="l", main=paste0("3rd PC (",round(100*FVE[3])," % of var)"))
+  # plot(xeval, X[1,]+mu,type="l", ylim=range(X+mu))
+  # for(n in 1:dim(X)[1]) points(xeval, X[n,]+mu,type="l")
+  # points(xeval,mu,col=2,lwd=2,type="l")
+  # points(xeval,mu+30*SVD$d[3]/lam*SVD$v[,3],col=2,lwd=2,type="l",lty=2)
+  # points(xeval,mu-30*SVD$d[3]/lam*SVD$v[,3],col=2,lwd=2,type="l",lty=2)
+  
+  plot(xeval,Loadings[,4]*sign(sum(Loadings[,4])),type="l", main=paste0("4th PC (",round(100*FVE[4])," % of var)"))
+  # plot(xeval, X[1,]+mu,type="l", ylim=range(X+mu))
+  # for(n in 1:dim(X)[1]) points(xeval, X[n,]+mu,type="l")
+  # points(xeval,mu,col=2,lwd=2,type="l")
+  # points(xeval,mu+30*SVD$d[4]/lam*SVD$v[,4],col=2,lwd=2,type="l",lty=2)
+  # points(xeval,mu-30*SVD$d[4]/lam*SVD$v[,4],col=2,lwd=2,type="l",lty=2)
+}
+perform_pca(t(fem_height)) # t() so that individuals are rows
+# perform_pca(t(mal_height))
+```
+
+* Puberty Growth Spurt (PGS) during the puberty period (later for boys)
+* 1st PC is just positive, so it gives the overall level, i.e. 89 % of variability in the data are due to differences in children heights that persist until adulthood
+* 2nd PC contrasts height before and after PSG end, i.e. it is a drift effect
+* 3rd PC contrasts height during childhood with the one during PSG (though its end is shifted compared to 2nd PC)
+* 4th PC is hard to interpret
+
+## PCA of Acceleration (Girls, 2nd Derivative of Height)
+
+```{r}
+fem_accel <- B %*% Data$fem_accel
+mal_accel <- B %*% Data$mal_accel
+perform_pca(t(fem_accel))
+# perform_pca(t(mal_accel))
+```
+
+## PCA of Acceleration (Girls, 2nd Derivative of Height)
+
+* here things are again similar for girls and boys
+* 1st PC captures the variability in the infant age (remember, these are acceleration curves)
+* 2nd PC contrasts PGS period against pre- and after-PGS period
+* 3rd PC is very hard to interpret due to the sign change in the middle of the PGS period
+
+PGS can be seen clearly on 2nd and 3rd PC:
+
+```{r,fig.show='hold',out.width="45%", fig.dim=c(6,4)}
+X <- t(fem_accel)
+mu <- colMeans(X)
+X <- sweep(X,2,mu)
+SVDf <- svd(X)
+X <- t(mal_accel)
+mu <- colMeans(X)
+X <- sweep(X,2,mu)
+SVDm <- svd(X)
+plot(xeval,SVDf$v[,2]*sign(sum(SVDf$v[,2])),type="l", col=2)
+points(xeval,SVDm$v[,2]*sign(sum(SVDf$v[,2])),type="l", col=4)
+plot(xeval,SVDf$v[,3]*sign(sum(SVDf$v[,3])),type="l", col=2)
+points(xeval,SVDm$v[,3]*sign(sum(SVDm$v[,3])),type="l", col=4)
+```
+
+# Time Warping and Registration
+
+## Warping Problem: Example
+
+Let's zoom in on the first 10 female acceleration curves:
+
+```{r, out.width="70%", fig.dim=c(8,5), fig.align='center'}
+plot(xeval, fem_accel[,1],type="l", ylim=range(-4,2), main="Height Curves Girls")
+for(n in 2:10) points(xeval, fem_accel[,n],type="l",col=n,lty=n%%6+1)
+mu <- colMeans(t(fem_accel[,1:10]))
+points(xeval, mu, type="l", lwd=3)
+legend("topleft", legend="mean curve", lwd=3)
+```
+
+* the mean suggests much longer PGS duration than any single curve
+* the peaks and valleys are much smaller than for any single curve
+
+## Warping Problem: Example
+
+This is due to PGS occuring at different times for different individuals:
+
+* **growth age** (age w.r.t to the growth process, unique for every individual depending e.g. on secretion of hormones) is a warped version of the
+* **objective age** (age in which we are taking measurements -- given by the objective time flow)
+    - for example, the peak of the PGS (i.e. where the acceleration curves go down to zero in the 10-15 age window) is a well-defined landmark in the growth process but two individuals experience it in a different **objective age**, though their **growth ages** are the same at that landmark
+
+## Phase (x) vs. Amplitude (y) Variation
+
+\centering
+\includegraphics[width=0.8\textwidth]{../Plots/amplitude_phase.png}
+
+## Registration
+
+* re-map the observation interval to $[0,1]$ just for the sake of presentation
+* consider the following model for the observed curves $A^{(obs)}_{n}(t)$, $n=1,\ldots,N$:
+\[
+A^{(obs)}_{n}(t) = A_n^\star(F_n(t))
+\]
+where $F_n:[0,1] \to [0,1]$ is a non-decreasing *time-warping* function and $A_n^\star$ is a realization of a growth-acceleration process $A^\star$ that we actually wish to study
+* if we knew the functions $F_n$, we would prefer to work with the registered data
+\[
+A^{(reg)}_{n}(t) = A^{(obs)}_n(F_n^{-1}(t))
+\]
+
+## Registration
+
+* we want to register the curves, i.e. create a new time flow that is objective w.r.t. the growth process and find the functions $F_n$
+* then we want to **register** every curve in a way such that the growth process follows the objective time
+* there are issues with this:
+    1. any procedure (and there are many that look mathematically sound) inferring this automatically is doomed to fail unless registered processes are rank one
+        - obviously not true here, since this would mean e.g. that someone who is born larger will be taller in the adulthood as well
+    2. we need to observe the whole process from the beginning until the end
+        - also not true here, but approximately...
+* so let us just register the data in a way that our landmark (peak PGS) is registered to a fixed point (e.g. mean PGS)
+
+## Localizing Landmarks: Example
+
+Let's zoom in again:
+
+```{r, out.width="70%", fig.dim=c(8,5), fig.align='center'}
+plot(xeval, fem_accel[,1],type="l", ylim=range(-4,2), main="Height Curves Girls")
+for(n in 2:10) points(xeval, fem_accel[,n],type="l",col=n,lty=n%%6+1)
+mu <- colMeans(t(fem_accel[,1:10]))
+points(xeval, mu, type="l", lwd=3)
+legend("topleft", legend="mean curve", lwd=3)
+abline(v=c(9.3,14.3), lty=2, lwd=2)
+abline(h=0, lty=2, lwd=2)
+```
+
+Finding the locations at which acceleration curves go through from above around puberty is a straightforward programming exercise.
+
+## Localizing Landmarks: Example
+
+Visual check that the programming exercise was successful:
+
+```{r, out.width="70%", fig.dim=c(8,5), fig.align='center'}
+Xi_accel <- Data$fem_accel
+x_accel <- fem_accel
+
+# let's work on a denser grid
+xevalreg <- seq(1,18,by=0.001)
+Bdense <- bsplineS(xevalreg, norder=6, breaks=growth$ag)
+datadense <- Bdense %*% Xi_accel # just preparing
+
+# find the landmark for every curve - just a basic programming exercise
+landmarks <- rep(0,dim(x_accel)[2])
+for(n in 1:dim(x_accel)[2]){
+  part <- datadense[8301:13300,n]
+  flag <- T
+  while(flag){
+    prop <- which.min(abs(part))
+    if(part[prop-1]<0 || part[prop-1]==100){
+      part[prop] <- 100
+    }else{
+      landmarks[n] <- which.min(abs(part)) + 8300
+      flag=F
+    }
+  }
+}
+
+# check that we were successful
+n=1
+plot(xevalreg[8301:13300],datadense[8301:13300,n],type="l")
+for(n in 1:10){
+  points(xevalreg[8301:13300],datadense[8301:13300,n],type="l")
+  abline(v=xevalreg[landmarks[n]],col=2, lty=2)
+}
+abline(h=0, lwd=2, lty=2)
+```
+
+## Registering the Landmarks
+
+```{r, out.width="70%", fig.dim=c(8,5), fig.align='center'}
+plot(xeval, fem_accel[,1],type="l", ylim=range(-4,2), main="Height Curves Girls")
+for(n in 2:10) points(xeval, fem_accel[,n],type="l",col=n,lty=n%%6+1)
+mu <- colMeans(t(fem_accel[,1:10]))
+points(xeval, mu, type="l", lwd=3)
+legend("topleft", legend=c("mean curve","mean landmark location"), lwd=c(3,2), lty=c(1,2), col=c("black","red"))
+abline(v=xevalreg[round(mean(landmarks))], lty=2, lwd=2, col="red")
+abline(h=0, lty=2, lwd=2)
+points(xevalreg[landmarks][1:10], rep(0,10), col="red", cex=2, lwd=2, pch=4)
+```
+
+* we want to re-define time-flow for every curve such that
+    - all ladmarks (red crosses) align at the mean landmark (the mean location of the PGS peak)
+    - we distort time smoothly and monotonically
+    - beginning and end remain the same
+
+## Registering the Landmarks
+
+For illustration, one of the curves has the landmark at 13.9, and this should be registered to the mean landmark at 11.3:
+
+```{r, out.width="45%", fig.dim=c(6,4), fig.align='center', fig.show="hold"}
+# let's shift the time such that the landmarks are shifted to the mean landmark
+Datareg <- x_accel # registered data
+Fwarp <- array(0,c(dim(x_accel)[2],length(xeval)))
+for(n in 1:dim(x_accel)[2]){
+  # print(n)
+  t <- c(min(Data$age),xevalreg[round(mean(landmarks))],max(Data$age))
+  newt <- c(min(Data$age),xevalreg[landmarks[n]] ,max(Data$age))
+  y <- newt-t
+  Bwarp <- bsplineS(t, t)
+  Fpsi <- ginv(t(Bwarp)%*%Bwarp) %*% t(Bwarp) %*% y
+  Bwarplarger <- bsplineS(xeval, t)
+  Fwarp[n,] <- as.vector(Bwarplarger %*% Fpsi + xeval)
+  # evaluate data at time given by Fwarp[n,]
+  # in some cases, Fwarp[n,] goes out of the age range, thus the 2nd line below
+  Br <- bsplineS(Fwarp[n,], norder=6, breaks=
+                   c(min(Fwarp[n,]),growth$ag[2:(length(growth$ag)-1)],max(Fwarp[n,])))
+  Datareg[,n] <- Br %*% Xi_accel[,n]
+}
+
+t <- c(min(Data$age),xevalreg[round(mean(landmarks))],max(Data$age))
+newt <- c(min(Data$age),xevalreg[landmarks[7]] ,max(Data$age))
+plot(t,newt,xlab="objective age", ylab="growth age")
+abline(a=0,b=1)
+
+# example warp function fitting
+plot(t,newt-t,xlab="objective age", ylab="detrended growth age")
+Bplot <- bsplineS(xeval, t)
+for(n in 1:5) points(xeval,Bplot[,n],type="l",col=1+n, lty=2)
+points(xeval, Fwarp[7,]-xeval, type="l")
+# there are 5 B-splines because... B-splines form basis for the spline space, the default order 4 corresponds to cubic spline, which has 4 df in every segment but -3 df for every internal knot (since the value and 1st and 2nd derivatives must coincide from left and right). Here we have 1 internal knot, so 2 segments, so 2*4-3=5 degrees of freedom. Now, regardless of the value at the knots, it can be fit by a cubic spline formed as a linear combination of the B-splines. With 2 internal knots, we would have 3*4-2*3=6 B-splines. In general, one will have "ord*(K+1) - deg*K" B-splines where K is the number of internal knots and ord=deg+1 are the order of the B-splines and the degree of the underlying spline.
+
+# example warp functions
+plot(xeval, Fwarp[7,], type="l",xlab="objective age", ylab="growth age")
+points(xeval, Fwarp[3,], type="l", col=2)
+points(xeval, Fwarp[1,], type="l", col=3)
+abline(a=0,b=1, col="gray60",lwd=2)
+
+# example warped datum
+n=7 # 7 is registered a lot, 9 only very little, 1 is somewhat average
+plot(xeval,Datareg[,n],ylim=c(-4,2),type="l")
+points(xeval,x_accel[,n],type="l",col=2)
+abline(v=xevalreg[round(mean(landmarks))], lty=2, lwd=2, col="red")
+abline(h=0, lty=2, lwd=2)
+legend("topleft",legend=c("warped curve","registered curve"),lty=1, col=c(2,1))
+legend("bottomright",legend=c("mean landmark location"),lty=2, col="red", lwd=2)
+```
+
+## PCA (unregistered)
+
+In the unregistered PCA the 3rd PC is a bit strange, since it captures approximately the same thing as the 2nd one, just a bit shifted.
+
+```{r, fig.align='center', out.width="70%"}
+perform_pca(t(fem_accel))
+```
+
+## PCA (registered)
+
+After registration, this PC completely vanishes. Also, registration increased FVE (regardless of how many components we keep). On the other hand most of the variability now at the beginning, which would also need some registration...
+
+```{r, fig.align='center', out.width="70%"}
+perform_pca(t(Datareg))
+```
+
+# Project 6
+
+## Data
+
+Choose your data set as either
+
+1. covid cases,
+2. hospitalizations, or
+3. deaths
+
+per capita, and for either the case of
+
+a. the US states, or
+b. European states.
+
+Find data on the web, and perform the following tasks...
+
+## Tasks
+
+* download and check the data
+    - think about potential issues
+* work with the logarithm of cumulative curves instead of the original daily data
+* you will probably need to perform some sort of smoothing
+* what is the underlying process you try to study?
+    - where does it study and where does it end?
+    - after next week, registration might come handy (but not necessarily)
+* perform PCA using only `svd()`
+* try to interpret your PCs and the low-dimensional plot
+    - you might utilize additional info such as GDP for European states or Democratic support for the US states
+
+<!---
+## PCA on Warp Functions
+
+Since after detrending we were only fitting a single point that differed for all the curves, it makes sense that after subtracting the mean (which is the identity, i.e. it corresponds to detrending), warp maps are rank one.
+
+```{r, fig.align='center', out.width="70%"}
+perform_pca(Fwarp)
+```
+--->
