@@ -1,5 +1,5 @@
 ---
-title: "Week 12: Functional Data Analysis"
+title: "Week 11: Functional Data Analysis"
 subtitle: "MATH-516 Applied Statistics"
 author: "Tomas Masak"
 # date: "`r format(Sys.time(), '%b %d, %Y')`"
@@ -409,7 +409,7 @@ A^{(reg)}_{n}(t) = A^{(obs)}_n(F_n^{-1}(t))
         - obviously not true here, since this would mean e.g. that someone who is born larger will be taller in the adulthood as well
     2. we need to observe the whole process from the beginning until the end
         - also not true here, but approximately...
-* so let us just register the data in a way that our landmark (peak PGS) is registered to a fixed point (e.g. mean PGS)
+* so let us just register the data in a way that our landmark (peak PGS) is registered to a fixed point (e.g. mean peak PGS)
 
 ## Localizing Landmarks: Example
 
